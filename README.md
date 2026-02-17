@@ -1,6 +1,8 @@
 # MorletX
 
-***A lightweight, high-performance Python library for continuous wavelet transform (CWT) using Morlet wavelet filter bank, with GPU computing support.***
+***A lightweight, high-performance Python library for continuous wavelet
+transform (CWT) using Morlet wavelet filter bank, with GPU computing
+support.***
 
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
@@ -10,23 +12,37 @@
 [![CI](https://github.com/nimanzik/MorletX/actions/workflows/ci.yml/badge.svg)](https://github.com/nimanzik/MorletX/actions/workflows/ci.yml)
 
 > [!CAUTION]
-> This project is still under active development and may undergo significant changes.
+> This project is still under active development and may undergo significant
+> changes.
 
 ## Overview
 
-This Python library provides an implementation of the Morlet wavelet transform, a powerful time-frequency analysis method that offers an intuitive approach to understanding signal characteristics. The implementation is inspired by the pioneering work of [French geophysicist Jean Morlet](https://en.wikipedia.org/wiki/Jean_Morlet), leveraging his original, highly intuitive formulation which laid the foundation for the Continuous Wavelet Transform (CWT).
+This Python library provides an implementation of the Morlet wavelet
+transform, a powerful time-frequency analysis method that offers an
+intuitive approach to understanding signal characteristics. The
+implementation is inspired by the pioneering work of [French geophysicist
+Jean Morlet](https://en.wikipedia.org/wiki/Jean_Morlet), leveraging his
+original, highly intuitive formulation which laid the foundation for the
+Continuous Wavelet Transform (CWT).
 
-Unlike more abstract modern formulations of the CWT, Jean Morlet's method is deeply rooted in physical intuition, making it particularly accessible for comprehending how signals vary in frequency over time.
+Unlike more abstract modern formulations of the CWT, Jean Morlet's method is
+deeply rooted in physical intuition, making it particularly accessible for
+comprehending how signals vary in frequency over time.
 
 ## Features
 
-- **Intuitive Implementation**: Directly implements Morlet's original and physically intuitive formulation of the wavelet transform, as detailed in his 1982 papers.
-- **High Performance**: Supports computations on both the CPU and GPU, enabling efficient processing of large datasets and high-frequency signals.
-- **Pythonic Design**: Developed as a user-friendly Python library, making it accessible for researchers and developers.
+- **Intuitive Implementation**: Directly implements Morlet's original and
+  physically intuitive formulation of the wavelet transform, as detailed in
+  his 1982 papers.
+- **High Performance**: Supports computations on both the CPU and GPU,
+  enabling efficient processing of large datasets and high-frequency signals.
+- **Pythonic Design**: Developed as a user-friendly Python library, making it
+  accessible for researchers and developers.
 
 ## Installation
 
-If you use `uv` as your Python package manager, you can install MorletX using the following command:
+If you use `uv` as your Python package manager, you can install MorletX using
+the following command:
 
 ```bash
 # Install as a Git dependency source using `uv` (recommended)
@@ -69,7 +85,8 @@ scalogram = filter_bank.transform(data, mode=mode, detach_from_device=True)
 
 ### Switching between CPU and GPU
 
-Switching between CPU and GPU computation is as simple as changing the `array_engine` parameter to either `"numpy"` or `"cupy"`.
+Switching between CPU and GPU computation is as simple as changing the
+`array_engine` parameter to either `"numpy"` or `"cupy"`.
 
 - For CPU computation (and storing the results as NumPy arrays):
 
@@ -85,22 +102,30 @@ Switching between CPU and GPU computation is as simple as changing the `array_en
 
 ### Use CuPy for computation but get results as NumPy array
 
-When using GPU for computation, the results will be returned as so-called "device arrays". To move the results to the host (CPU) memory, use the `detach_from_device` parameter:
+When using GPU for computation, the results will be returned as so-called
+"device arrays". To move the results to the host (CPU) memory, use the
+`detach_from_device` parameter:
 
 ```python
 filter_bank = MorletFilterBank(..., array_engine="cupy")
 scalogram_as_numpy = filter_bank.transform(..., detach_from_device=True)
 ```
 
-By default, the `detach_from_device` parameter is set to `False`, meaning the results will be stored as device arrays when using GPU for computation (note that it has no effect on CPU computation).
+By default, the `detach_from_device` parameter is set to `False`, meaning
+the results will be stored as device arrays when using GPU for computation
+(note that it has no effect on CPU computation).
 
 ### Use CuPy for computation and get results as PyTorch Tensor
 
-Both PyTorch and CuPy support `__cuda_array_interface__`, so zero-copy data exchange between CuPy and PyTorch can be achieved at no cost.
+Both PyTorch and CuPy support `__cuda_array_interface__`, so zero-copy data
+exchange between CuPy and PyTorch can be achieved at no cost.
 
-The only requirement is that the tensor must be already on GPU before exchanging data. Therefore, make sure that `detach_from_device=False` (which is the default behavior) when doing the transformation.
+The only requirement is that the tensor must be already on GPU before
+exchanging data. Therefore, make sure that `detach_from_device=False`
+(which is the default behavior) when doing the transformation.
 
-PyTorch supports zero-copy data exchange through `DLPack`, so you can get the results as a PyTorch tensor as follows:
+PyTorch supports zero-copy data exchange through `DLPack`, so you can get
+the results as a PyTorch tensor as follows:
 
 ```python
 import torch
@@ -112,7 +137,8 @@ scalogram_as_torch = torch.from_dlpack(scalogram_as_cupy)
 
 ### Visualisation
 
-There are quick-and-ready methods to visualise both the filter bank and the computed scalogram.
+There are quick-and-ready methods to visualise both the filter bank and the
+computed scalogram.
 
 - To visualise the scalogram:
 
@@ -120,7 +146,7 @@ There are quick-and-ready methods to visualise both the filter bank and the comp
 import matplotlib.pyplot as plt
 
 fig_sgram, ax_sgram = plt.subplots()
-filter_bank.plot_scalogram(ax=ax_sgram, scalogram=scalogram, =)
+filter_bank.plot_scalogram(ax=ax_sgram, scalogram=scalogram)
 ```
 
 - To visualise the frequency responses of the filter bank:
@@ -130,38 +156,30 @@ fig_fbank, ax_fbank = plt.subplots()
 filter_bank.plot_responses(ax=ax_fbank, n_fft=512)
 ```
 
-Here is an example of the computed scalogram for a signal with a sampling frequency of 16 kHz:
+Here is an example of the computed scalogram for a signal with a sampling
+frequency of 16 kHz:
 
-<div align="center">
-<table>
-<tr>
-<td align="center">
-<strong>Example Signal</strong><br>
-<img src="docs/assets/images/01_example_signal.png" alt="Example Signal" width="100%">
-</td>
-<td align="center">
-<strong>Morlet Filter Bank</strong><br>
-<img src="docs/assets/images/02_filter_bank.png" alt="Morlet Filter Bank" width="100%">
-</td>
-<td align="center">
-<strong>Computed scalogram</strong><br>
-<img src="docs/assets/images/03_scalogram.png" alt="Computed scalogram" width="100%">
-</td>
-</tr>
-</table>
-</div>
+| Example Signal | Morlet Filter Bank | Computed scalogram |
+| --- | --- | --- |
+| ![Example Signal](docs/assets/images/01_example_signal.png) | ![Morlet Filter Bank](docs/assets/images/02_filter_bank.png) | ![Computed scalogram](docs/assets/images/03_scalogram.png) |
 
 ## Shape Ratio ($\kappa$)
 
-A significant innovation introduced by Morlet is the **shape ratio**, $\kappa$. This parameter defines the Gaussian time width at half-amplitude as an integer multiple of the wavelet's dominant period ($\Delta t = \kappa T_0$). This allows for the preservation of the wavelet's shape as its dominant period changes, providing a consistent analysis across frequencies.
+A significant innovation introduced by Morlet is the **shape ratio**, $\kappa$.
+This parameter defines the Gaussian time width at half-amplitude as an integer
+multiple of the wavelet's dominant period ($\Delta t = \kappa T_0$). This
+allows for the preservation of the wavelet's shape as its dominant period
+changes, providing a consistent analysis across frequencies.
 
 > [!NOTE]
 > This section will be expanded and detailed in the future.
 
 ## Examples
 
-<!-- markdownlint-disable-next-line MD033 -->
-<a href="https://nimanzik.github.io/MorletX/assets/htmls/basic_example.html" target="_blank">This example</a> shows how to use `MorletX` to compute the wavelet transform of an acoustic Fin-Whale signal. The [marimo notebook](examples/marimo_notebooks/basic_example.py) for this example is also available for interactive exploration.
+[This example](https://nimanzik.github.io/MorletX/assets/htmls/basic_example.html)
+shows how to use `MorletX` to compute the wavelet transform of an acoustic
+Fin-Whale signal. The [marimo notebook](examples/marimo_notebooks/basic_example.py)
+for this example is also available for interactive exploration.
 
 ## Troubleshooting
 
@@ -169,4 +187,5 @@ Report any issues or bugs on [GitHub Issues](https://github.com/nimanzik/MorletX
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE)
+file for details.
