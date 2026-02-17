@@ -16,6 +16,7 @@ dependencies = [
     "numpy>=2.3.3",
     "rich>=14.1.0",
     "scipy>=1.16.2",
+    "torch>=2.10.0",
 ]
 
 [project.optional-dependencies]
@@ -38,6 +39,9 @@ dev = [
     "ruff>=0.13.0",
     "ty>=0.0.1a20",
 ]
+
+[[tool.uv.index]]
+url = "https://download.pytorch.org/whl/cpu"
 
 [tool.ty.rules]
 unresolved-attribute = "ignore"
