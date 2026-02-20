@@ -9,4 +9,7 @@ wheels/
 # Virtual environments
 .venv
 
+# VS Code local settings
 .vscode
+
+_chats
