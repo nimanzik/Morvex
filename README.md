@@ -65,7 +65,7 @@ To compute the scalogram (the output of the CWT):
 ```python
 import numpy as np
 
-from morvex.core import MorletFilterBank
+from morvex import MorletFilterBank
 
 data = ... # some signal data
 fs = ...   # sampling frequency of the signal
