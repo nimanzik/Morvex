@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.15.5"
+__generated_with = "0.19.7"
 app = marimo.App(width="medium")
 
 
@@ -18,7 +18,7 @@ def _():
     import matplotlib.pyplot as plt
     import numpy as np
 
-    from morletx import MorletFilterBank
+    from morvex import MorletFilterBank
 
     plt.style.use("seaborn-v0_8")
     return MorletFilterBank, Path, dataclass, np, plt
@@ -26,7 +26,9 @@ def _():
 
 @app.cell
 def _(mo):
-    mo.md(r"""## Load example signal data""")
+    mo.md(r"""
+    ## Load example signal data
+    """)
     return
 
 
@@ -66,7 +68,9 @@ def _(Path, Signal, np):
 
 @app.cell
 def _(mo):
-    mo.md(r"""## Fin-Whale song recording signal""")
+    mo.md(r"""
+    ## Fin-Whale song recording signal
+    """)
     return
 
 
@@ -86,7 +90,9 @@ def _(plt, signal):
 
 @app.cell
 def _(mo):
-    mo.md(r"""## Apply the CWT and compute scalogram""")
+    mo.md(r"""
+    ## Apply the CWT and compute scalogram
+    """)
     return
 
 
@@ -110,7 +116,9 @@ def _(MorletFilterBank, signal):
 
 @app.cell
 def _(mo):
-    mo.md(r"""## Display the scalogram""")
+    mo.md(r"""
+    ## Display the scalogram
+    """)
     return
 
 
@@ -131,7 +139,9 @@ def _(filt_bank, mode, plt, scalogram):
 
 @app.cell
 def _(mo):
-    mo.md(r"""## Display the frequency responses of the filterbank""")
+    mo.md(r"""
+    ## Display the frequency responses of the filterbank
+    """)
     return
 
 
