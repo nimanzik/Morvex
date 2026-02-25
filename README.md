@@ -1,4 +1,4 @@
-# MorletX
+# Morvex
 
 ***A lightweight, high-performance Python library for continuous wavelet
 transform (CWT) using Morlet wavelet filter bank, with GPU computing
@@ -9,7 +9,7 @@ support.***
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://pre-commit.com/)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CI](https://github.com/nimanzik/MorletX/actions/workflows/ci.yml/badge.svg)](https://github.com/nimanzik/MorletX/actions/workflows/ci.yml)
+[![CI](https://github.com/nimanzik/Morvex/actions/workflows/ci.yml/badge.svg)](https://github.com/nimanzik/Morvex/actions/workflows/ci.yml)
 
 > [!CAUTION]
 > This project is still under active development and may undergo significant
@@ -41,20 +41,20 @@ comprehending how signals vary in frequency over time.
 
 ## Installation
 
-If you use `uv` as your Python package manager, you can install MorletX using
+If you use `uv` as your Python package manager, you can install Morvex using
 the following command:
 
 ```bash
 # Install as a Git dependency source using `uv` (recommended)
-$ uv add git+https://github.com/nimanzik/MorletX
+$ uv add git+https://github.com/nimanzik/Morvex
 ```
 
 If you prefer to use `pip`, you need to install it from source:
 
 ```bash
 # Install from source using `pip`
-$ git clone https://github.com/nimanzik/MorletX.git
-$ cd MorletX
+$ git clone https://github.com/nimanzik/Morvex.git
+$ cd Morvex
 $ pip install .
 ```
 
@@ -65,7 +65,7 @@ To compute the scalogram (the output of the CWT):
 ```python
 import numpy as np
 
-from morletx.core import MorletFilterBank
+from morvex.core import MorletFilterBank
 
 data = ... # some signal data
 fs = ...   # sampling frequency of the signal
@@ -176,14 +176,14 @@ changes, providing a consistent analysis across frequencies.
 
 ## Examples
 
-[This example](https://nimanzik.github.io/MorletX/assets/htmls/basic_example.html)
-shows how to use `MorletX` to compute the wavelet transform of an acoustic
+[This example](https://nimanzik.github.io/Morvex/assets/htmls/basic_example.html)
+shows how to use `Morvex` to compute the wavelet transform of an acoustic
 Fin-Whale signal. The [marimo notebook](examples/marimo_notebooks/basic_example.py)
 for this example is also available for interactive exploration.
 
 ## Troubleshooting
 
-Report any issues or bugs on [GitHub Issues](https://github.com/nimanzik/MorletX/issues).
+Report any issues or bugs on [GitHub Issues](https://github.com/nimanzik/Morvex/issues).
 
 ## License
 

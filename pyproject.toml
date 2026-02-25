@@ -1,5 +1,5 @@
 [project]
-name = "morletx"
+name = "morvex"
 version = "0.1.0"
 description = ""
 authors = [
@@ -34,6 +34,7 @@ build-backend = "uv_build"
 dev = [
     "ipython>=9.5.0",
     "pre-commit>=4.3.0",
+    "prek>=0.3.3",
     "pytest>=8.4.2",
     "ruff>=0.13.0",
     "ty>=0.0.1a20",

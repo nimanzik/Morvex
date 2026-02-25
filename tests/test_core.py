@@ -1,9 +1,9 @@
-"""Unit tests for morletx core functionality."""
+"""Unit tests for morvex core functionality."""
 
 import numpy as np
 import pytest
 
-from morletx import MorletWavelet, MorletWaveletGroup, compute_morlet_center_freqs
+from morvex import MorletWavelet, MorletWaveletGroup, compute_morlet_center_freqs
 
 
 class TestMorletWavelet:
@@ -12,10 +12,7 @@ class TestMorletWavelet:
     def test_initialization(self):
         """Test MorletWavelet initialization."""
         wavelet = MorletWavelet(
-            center_freq=10.0,
-            shape_ratio=5.0,
-            duration=1.0,
-            sampling_freq=100.0
+            center_freq=10.0, shape_ratio=5.0, duration=1.0, sampling_freq=100.0
         )
 
         assert wavelet.center_freq == 10.0
@@ -26,10 +23,7 @@ class TestMorletWavelet:
     def test_properties(self):
         """Test MorletWavelet properties."""
         wavelet = MorletWavelet(
-            center_freq=10.0,
-            shape_ratio=5.0,
-            duration=1.0,
-            sampling_freq=100.0
+            center_freq=10.0, shape_ratio=5.0, duration=1.0, sampling_freq=100.0
         )
 
         # Test that properties return expected types and shapes
@@ -42,10 +36,7 @@ class TestMorletWavelet:
     def test_transform_basic(self):
         """Test basic wavelet transform functionality."""
         wavelet = MorletWavelet(
-            center_freq=10.0,
-            shape_ratio=5.0,
-            duration=1.0,
-            sampling_freq=100.0
+            center_freq=10.0, shape_ratio=5.0, duration=1.0, sampling_freq=100.0
         )
 
         # Create a simple test signal
@@ -62,10 +53,7 @@ class TestMorletWavelet:
     def test_transform_modes(self):
         """Test different transform modes."""
         wavelet = MorletWavelet(
-            center_freq=10.0,
-            shape_ratio=5.0,
-            duration=1.0,
-            sampling_freq=100.0
+            center_freq=10.0, shape_ratio=5.0, duration=1.0, sampling_freq=100.0
         )
 
         # Create test signal
@@ -82,11 +70,7 @@ class TestMorletWavelet:
         assert power_result.dtype == np.float64
 
         # Power should be magnitude squared
-        np.testing.assert_allclose(
-            power_result,
-            magnitude_result**2,
-            rtol=1e-10
-        )
+        np.testing.assert_allclose(power_result, magnitude_result**2, rtol=1e-10)
 
 
 class TestMorletWaveletGroup:
@@ -98,7 +82,7 @@ class TestMorletWaveletGroup:
             center_freqs=[5.0, 10.0, 20.0],
             shape_ratios=[3.0, 5.0, 7.0],
             duration=1.0,
-            sampling_freq=100.0
+            sampling_freq=100.0,
         )
 
         assert len(group.center_freqs) == 3
@@ -112,14 +96,16 @@ class TestMorletWaveletGroup:
             center_freqs=[5.0, 10.0, 20.0],
             shape_ratios=[5.0, 5.0, 5.0],
             duration=1.0,
-            sampling_freq=100.0
+            sampling_freq=100.0,
         )
 
         # Create test signal with multiple frequencies
         t = np.linspace(0, 1, 100)
-        signal = (np.sin(2 * np.pi * 5 * t) +
-                 np.sin(2 * np.pi * 10 * t) +
-                 np.sin(2 * np.pi * 20 * t))
+        signal = (
+            np.sin(2 * np.pi * 5 * t)
+            + np.sin(2 * np.pi * 10 * t)
+            + np.sin(2 * np.pi * 20 * t)
+        )
 
         result = group.transform(signal, mode="power")
 
@@ -134,10 +120,7 @@ class TestComputeMorletCenterFreqs:
     def test_basic_computation(self):
         """Test basic center frequency computation."""
         center_freqs = compute_morlet_center_freqs(
-            n_octaves=3,
-            n_intervals=12,
-            shape_ratio=5.0,
-            sampling_freq=1000.0
+            n_octaves=3, n_intervals=12, shape_ratio=5.0, sampling_freq=1000.0
         )
 
         assert isinstance(center_freqs, np.ndarray)
@@ -152,7 +135,7 @@ class TestComputeMorletCenterFreqs:
                 n_octaves=0,  # Invalid
                 n_intervals=12,
                 shape_ratio=5.0,
-                sampling_freq=1000.0
+                sampling_freq=1000.0,
             )
 
         with pytest.raises(ValueError):
@@ -160,7 +143,7 @@ class TestComputeMorletCenterFreqs:
                 n_octaves=3,
                 n_intervals=0,  # Invalid
                 shape_ratio=5.0,
-                sampling_freq=1000.0
+                sampling_freq=1000.0,
             )
 
         with pytest.raises(ValueError):
@@ -168,16 +151,13 @@ class TestComputeMorletCenterFreqs:
                 n_octaves=3,
                 n_intervals=12,
                 shape_ratio=0.0,  # Invalid
-                sampling_freq=1000.0
+                sampling_freq=1000.0,
             )
 
     def test_frequency_ordering(self):
         """Test that center frequencies are properly ordered."""
         center_freqs = compute_morlet_center_freqs(
-            n_octaves=2,
-            n_intervals=4,
-            shape_ratio=5.0,
-            sampling_freq=1000.0
+            n_octaves=2, n_intervals=4, shape_ratio=5.0, sampling_freq=1000.0
         )
 
         # Frequencies should be in ascending order
@@ -193,7 +173,7 @@ class TestEdgeCases:
             center_freq=10.0,
             shape_ratio=5.0,
             duration=0.01,  # Very short duration
-            sampling_freq=100.0
+            sampling_freq=100.0,
         )
 
         signal = np.array([1.0])
@@ -205,10 +185,7 @@ class TestEdgeCases:
     def test_zero_signal(self):
         """Test behavior with zero signal."""
         wavelet = MorletWavelet(
-            center_freq=10.0,
-            shape_ratio=5.0,
-            duration=1.0,
-            sampling_freq=100.0
+            center_freq=10.0, shape_ratio=5.0, duration=1.0, sampling_freq=100.0
         )
 
         signal = np.zeros(100)

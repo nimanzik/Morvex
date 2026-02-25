@@ -7,6 +7,7 @@ app = marimo.App(width="medium")
 @app.cell
 def _():
     import marimo as mo
+
     return (mo,)
 
 
@@ -18,7 +19,7 @@ def _():
     import matplotlib.pyplot as plt
     import numpy as np
 
-    from morletx import MorletFilterBank
+    from morvex import MorletFilterBank
 
     plt.style.use("seaborn-v0_8")
     return MorletFilterBank, Path, dataclass, np, plt
@@ -48,6 +49,7 @@ def _(dataclass, np):
 
         def __repr__(self):
             return f"Signal duration: {self.duration} s | num. of samples: {self.num_samples} | sampling frequency: {self.fs}"
+
     return (Signal,)
 
 
