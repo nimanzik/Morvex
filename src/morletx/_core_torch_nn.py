@@ -13,27 +13,41 @@ from .utils.fft_utils_torch import _cwt_via_fft
 if TYPE_CHECKING:
     from matplotlib.axes import Axes as MplAxes
     from matplotlib.colors import Colormap
+    from numpy.typing import NDArray
     from plotly.graph_objects import Figure as PlotlyFigure
 
 Ln2 = math.log(2.0)
 PI = math.pi
 
 
-class MorletWaveletGroup(nn.Module):
-    """Base class for single and multi-scale complex Morlet wavelets (PyTorch nn.Module version).
+class _MorletWaveletGroup(nn.Module):
+    """Base class for single and multi-scale complex Morlet wavelets.
 
-    This version inherits from nn.Module and supports optional learnable parameters.
+    Parameters
+    ----------
+    center_freqs : float or array-like of float
+        Center frequencies of the wavelets.
+    shape_ratios : float or array-like of float
+        Shape ratios of the wavelets (a.k.a. number of cycles).
+    duration : float
+        Time duration of the wavelets.
+    sampling_freq : float
+        Sampling frequency of the wavelets (should be the same as the
+        signals to be analyzed).
+    learnable_center_freqs : bool, default=False
+        If True, center frequencies become learnable parameters that can
+        be optimised via backpropagation.
+    learnable_shape_ratios : bool, default=False
+        If True, shape ratios become learnable parameters that can be
+        optimised via backpropagation.
     """
 
     def __init__(
         self,
-        center_freqs: float | Sequence[float] | torch.Tensor | np.ndarray,
-        shape_ratios: float | Sequence[float] | torch.Tensor | np.ndarray,
+        center_freqs: float | Sequence[float] | NDArray[np.float] | torch.Tensor,
+        shape_ratios: float | Sequence[float] | NDArray[np.float] | torch.Tensor,
         duration: float,
         sampling_freq: float,
-        device: torch.device | str | None = None,
-        dtype: torch.dtype = torch.float64,
-        learnable_center_freqs: bool = False,
         learnable_shape_ratios: bool = False,
     ) -> None:
         """Initialize the complex Morlet-wavelet group.
@@ -49,17 +63,12 @@ class MorletWaveletGroup(nn.Module):
         sampling_freq : float
             Sampling frequency of the wavelets (should be the same as the
             signals to be analyzed).
-        device : torch.device or str or None, default=None
-            Device on which to create tensors ('cpu', 'cuda', etc.).
-            If None, uses the default device.
-        dtype : torch.dtype, default=torch.float64
-            Data type for floating point tensors.
         learnable_center_freqs : bool, default=False
             If True, center frequencies become learnable parameters that can
-            be optimized via backpropagation.
+            be optimised via backpropagation.
         learnable_shape_ratios : bool, default=False
             If True, shape ratios become learnable parameters that can be
-            optimized via backpropagation.
+            optimised via backpropagation.
 
         Raises
         ------
@@ -86,23 +95,19 @@ class MorletWaveletGroup(nn.Module):
         """
         super().__init__()
 
-        self.device = device if device is not None else torch.device("cpu")
-        self.dtype = dtype
         self.duration = duration
         self.sampling_freq = sampling_freq
 
-        # Convert inputs to tensors
-        if isinstance(center_freqs, (int, float)):
+        # Convert scalar inputs to lists for consistent processing
+        if isinstance(center_freqs, int | float):
             center_freqs = [center_freqs]
-        if isinstance(shape_ratios, (int, float)):
+
+        if isinstance(shape_ratios, int | float):
             shape_ratios = [shape_ratios]
 
-        center_freqs_tensor = torch.atleast_1d(
-            torch.as_tensor(center_freqs, dtype=dtype, device=self.device)
-        )
-        shape_ratios_tensor = torch.atleast_1d(
-            torch.as_tensor(shape_ratios, dtype=dtype, device=self.device)
-        )
+        # Ensure tensors are 1D
+        center_freqs_tensor = torch.atleast_1d(torch.as_tensor(center_freqs))
+        shape_ratios_tensor = torch.atleast_1d(torch.as_tensor(shape_ratios))
 
         # Register as parameters or buffers
         if learnable_center_freqs:
@@ -115,38 +120,46 @@ class MorletWaveletGroup(nn.Module):
         else:
             self.register_buffer("_shape_ratios", shape_ratios_tensor)
 
-        self._check_center_freqs()
-        self._check_shape_ratios()
+        self._validate_center_freqs()
+        self._validate_shape_ratios()
 
-    def _check_center_freqs(self) -> None:
+    @property
+    def nyquist_freq(self) -> float:
+        """Nyquist frequency of the wavelets."""
+        return 0.5 * self.sampling_freq
+
+    def _validate_center_freqs(self) -> None:
         """Check the center frequencies of the wavelets."""
+        title = "Center frequencies"
         if self._center_freqs.numel() == 0:
-            raise ValueError("Center frequencies must not be empty.")
+            raise ValueError(f"{title} cannot be empty.")
 
         if self._center_freqs.ndim != 1:
-            raise ValueError("Center frequencies must be a 1D array-like object.")
+            raise ValueError(f"{title} must be a 1D array-like object.")
 
         if not torch.all(self._center_freqs > 0.0):
-            raise ValueError("Center frequencies must be positive.")
+            raise ValueError(f"{title} must be positive.")
 
         if not torch.all(self._center_freqs < self.nyquist_freq):
-            raise ValueError("Center frequencies must be less than the Nyquist.")
+            raise ValueError(f"{title} must be less than the Nyquist frequency.")
 
-    def _check_shape_ratios(self) -> None:
+    def _validate_shape_ratios(self) -> None:
         """Check the shape ratios of the wavelets."""
+        title = "Shape ratios"
         if not torch.all(self._shape_ratios > 0.0):
-            raise ValueError("Shape ratios must be positive.")
+            raise ValueError(f"{title} must be positive values.")
 
         if (
             self._shape_ratios.numel() != 1
             and self._shape_ratios.shape != self._center_freqs.shape
         ):
             raise ValueError(
-                "Shape ratios must be either a scalar or a 1D array-like "
-                "object with the same length as the center frequencies."
+                f"{title} must be either a scalar or a 1D array-like "
+                f"object with the same length as the center frequencies."
             )
 
     def __len__(self) -> int:
+        """Return the number of wavelets in the group."""
         return self._center_freqs.numel()
 
     @property
@@ -157,14 +170,17 @@ class MorletWaveletGroup(nn.Module):
     @property
     def shape_ratios(self) -> torch.Tensor:
         """Shape ratios of the wavelets."""
-        if self._shape_ratios.numel() == 1:
+        if self._shape_ratios.numel() == 1 and len(self) > 1:
             return self._shape_ratios.expand(len(self))
         return self._shape_ratios
 
-    @property
-    def nyquist_freq(self) -> float:
-        """Nyquist frequency of the wavelets."""
-        return 0.5 * self.sampling_freq
+    def _get_current_device(self) -> torch.device:
+        """Get the current device of the wavelet parameters."""
+        return self._center_freqs.device
+
+    def _get_current_dtype(self) -> torch.dtype:
+        """Get the current data type of the wavelet parameters."""
+        return self._center_freqs.dtype
 
     @property
     def delta_t(self) -> float:
@@ -179,8 +195,10 @@ class MorletWaveletGroup(nn.Module):
     @property
     def times(self) -> torch.Tensor:
         """Time samples of the wavelets."""
+        device = self._get_current_device()
+        dtype = self._get_current_dtype()
         return (
-            torch.arange(self.n_t, dtype=self.dtype, device=self.device) * self.delta_t
+            torch.arange(self.n_t, dtype=dtype, device=device) * self.delta_t
             - 0.5 * self.duration
         )
 
@@ -250,8 +268,6 @@ class MorletWaveletGroup(nn.Module):
     ) -> torch.Tensor:
         """Compute the wavelet transform of the input signal(s).
 
-        This is the forward pass for nn.Module compatibility.
-
         Parameters
         ----------
         data : torch.Tensor or ndarray of shape (..., n_times)
@@ -288,69 +304,21 @@ class MorletWaveletGroup(nn.Module):
             | `(C, L)`    | `(C, F, L)`    |
             | `(B, C, L)` | `(B, C, F, L)` |
         """
-        return self.transform(data, demean, tukey_alpha, mode)
+        _validate_cwt_mode(mode)
 
-    def transform(
-        self,
-        data: torch.Tensor | np.ndarray,
-        demean: bool = True,
-        tukey_alpha: float | None = 0.1,
-        mode: Literal["power", "magnitude", "complex"] = "power",
-    ) -> torch.Tensor:
-        """Compute the wavelet transform of the input signal(s).
+        device = self._get_current_device()
+        dtype = self._get_current_dtype()
 
-        Parameters
-        ----------
-        data : torch.Tensor or ndarray of shape (..., n_times)
-            Input signal(s) to be analyzed.
-        demean : bool, default=True
-            Whether to demean the input signal(s) before computing the
-            wavelet transform.
-        tukey_alpha : float or None, default=0.1
-            Alpha parameter for the Tukey window. If None, no windowing is
-            applied.
-        mode : {'power', 'magnitude', 'complex'}, default='power'
-            Specifies the type of the returned values:
-                - `'power'`: squared magnitude of the coefficients.
-                - `'magnitude'`: absolute magnitude of the coefficients.
-                - `'complex'`: complex-valued coefficients.
-
-        Returns
-        -------
-        coeffs : torch.Tensor of shape (..., n_center_freqs, n_times)
-            Wavelet-transform coefficients.
-
-        Notes
-        -----
-        The shape of the output depends on the shape of the input signal(s):
-            - `F`: number of center frequencies (wavelets)
-            - `B`: batch size
-            - `C`: number of channels
-            - `L`: number of time points
-
-            | Input shape | Output shape   |
-            |-------------|----------------|
-            | `(L,)`      | `(F, L)`       |
-            | `(B, L)`    | `(B, F, L)`    |
-            | `(C, L)`    | `(C, F, L)`    |
-            | `(B, C, L)` | `(B, C, F, L)` |
-        """
-        _check_cwt_mode(mode)
-
-        # Convert to tensor if needed
-        if isinstance(data, np.ndarray):
-            data = torch.from_numpy(data).to(device=self.device, dtype=self.dtype)
-        else:
-            data = data.to(device=self.device, dtype=self.dtype)
+        x_in = torch.as_tensor(data, dtype=dtype, device=device)
 
         if demean:
-            data = data - data.mean(dim=-1, keepdim=True)
+            x_in = x_in - x_in.mean(dim=-1, keepdim=True)
 
         if tukey_alpha is not None:
-            window = tukey_window(data.shape[-1], tukey_alpha, device=self.device)
-            data = data * window
+            window = tukey_window(x_in.shape[-1], tukey_alpha, device=device)
+            x_in = x_in * window
 
-        wt_coeffs = _cwt_via_fft(data, self.waveforms, hermitian=True)
+        wt_coeffs = _cwt_via_fft(x_in, self.waveforms, hermitian=True)
         wt_coeffs = wt_coeffs / torch.sqrt(
             self.scales[:, None]
         )  # Normalize by the scales
@@ -512,7 +480,7 @@ class MorletWaveletGroup(nn.Module):
         return fig
 
 
-class MorletWavelet(MorletWaveletGroup):
+class MorletWavelet(_MorletWaveletGroup):
     """Single-scale complex Morlet wavelet (PyTorch nn.Module version)."""
 
     def __init__(
@@ -521,8 +489,6 @@ class MorletWavelet(MorletWaveletGroup):
         shape_ratio: float,
         duration: float,
         sampling_freq: float,
-        device: torch.device | str | None = None,
-        dtype: torch.dtype = torch.float64,
         learnable_center_freq: bool = False,
         learnable_shape_ratio: bool = False,
     ) -> None:
@@ -570,8 +536,6 @@ class MorletWavelet(MorletWaveletGroup):
             shape_ratios=[shape_ratio],
             duration=duration,
             sampling_freq=sampling_freq,
-            device=device,
-            dtype=dtype,
             learnable_center_freqs=learnable_center_freq,
             learnable_shape_ratios=learnable_shape_ratio,
         )
@@ -728,7 +692,7 @@ class MorletWavelet(MorletWaveletGroup):
         )
 
 
-class MorletFilterBank(MorletWaveletGroup):
+class MorletFilterBank(_MorletWaveletGroup):
     """Complex Morlet-wavelet filter bank with constant-Q properties (PyTorch nn.Module version)."""
 
     def __init__(
@@ -738,8 +702,6 @@ class MorletFilterBank(MorletWaveletGroup):
         shape_ratio: float,
         duration: float,
         sampling_freq: float,
-        device: torch.device | str | None = None,
-        dtype: torch.dtype = torch.float64,
         learnable_center_freqs: bool = False,
         learnable_shape_ratio: bool = False,
     ) -> None:
@@ -793,8 +755,6 @@ class MorletFilterBank(MorletWaveletGroup):
             shape_ratios=[shape_ratio],
             duration=duration,
             sampling_freq=sampling_freq,
-            device=device,
-            dtype=dtype,
             learnable_center_freqs=learnable_center_freqs,
             learnable_shape_ratios=learnable_shape_ratio,
         )
@@ -986,7 +946,7 @@ class MorletFilterBank(MorletWaveletGroup):
                         f"shape {coeffs.shape}."
                     )
             case (d, None) if d is not None:
-                coeffs_tensor = self.transform(d, demean, tukey_alpha, mode)
+                coeffs_tensor = self.forward(d, demean, tukey_alpha, mode)
                 coeffs = coeffs_tensor.detach().cpu().numpy()
             case _:  # This should never happen
                 raise RuntimeError("Unexpected error in input arguments.")
@@ -1040,7 +1000,7 @@ def compute_morlet_center_freqs(
     return center_freqs[mask]
 
 
-def _check_cwt_mode(mode: Literal["power", "magnitude", "complex"]) -> None:
+def _validate_cwt_mode(mode: Literal["power", "magnitude", "complex"]) -> None:
     """Check whether the CWT output mode is valid."""
     if mode not in (valid_modes := {"power", "magnitude", "complex"}):
         raise ValueError(f"Invalid mode: '{mode}', must be one of {valid_modes}.")
