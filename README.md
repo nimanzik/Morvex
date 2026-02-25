@@ -122,7 +122,7 @@ exchange between CuPy and PyTorch can be achieved at no cost.
 
 The only requirement is that the tensor must be already on GPU before
 exchanging data. Therefore, make sure that `detach_from_device=False`
-(which is the default behavior) when doing the transformation.
+(which is the default behaviour) when doing the transformation.
 
 PyTorch supports zero-copy data exchange through `DLPack`, so you can get
 the results as a PyTorch tensor as follows:
