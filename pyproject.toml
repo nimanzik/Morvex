@@ -21,6 +21,7 @@ dependencies = [
 [project.optional-dependencies]
 torch-cpu = ["torch>=2.9.0"]
 torch-cu128 = ["torch>=2.9.0"]
+plotly = ["plotly>=6.5.2"]
 
 [build-system]
 requires = ["uv_build>=0.8.5,<0.12.0"]
