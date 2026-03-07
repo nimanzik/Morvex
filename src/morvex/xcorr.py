@@ -11,6 +11,23 @@ from scipy.fft import next_fast_len
 _CACHED_NEXT_FAST_LEN: dict[int, int] = {}
 
 
+@lru_cache(maxsize=256)
+def _next_fast_len(n: int, real: bool) -> int:
+    """Cache results of next_fast_len for performance and thread safety.
+
+    See `scipy.fft.next_fast_len` for documentation.
+
+    Parameters
+    ----------
+    n : int
+        Length of the input sequence (to start searching from).
+    real : bool
+        Set to True if FFT involves real-valued input or output (i.e., rfft
+        and irfft), False for complex-valued FFT (i.e., fft and ifft).
+    """
+    return next_fast_len(n, real=real)
+
+
 def _reverse_and_conj(
     x: torch.Tensor, dims: list[int] | tuple[int, ...] | None = None
 ) -> torch.Tensor:
@@ -61,15 +78,6 @@ def _get_centered(x: torch.Tensor, new_shape: tuple[int, ...]) -> torch.Tensor:
     end_idx = start_idx + output_shape
     slice_idxs = [slice(start_idx[k], end_idx[k]) for k in range(len(end_idx))]
     return x[tuple(slice_idxs)]
-
-
-@lru_cache(maxsize=256)
-def _next_fast_len(n: int, real: bool) -> int:
-    """Cache results of next_fast_len for performance and thread safety.
-
-    See `scipy.fft.next_fast_len` for documentation.
-    """
-    return next_fast_len(n, real=real)
 
 
 def xcorr_via_fft(data: torch.Tensor, waveforms: torch.Tensor) -> torch.Tensor:
