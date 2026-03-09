@@ -28,33 +28,6 @@ def _next_fast_len(n: int, real: bool) -> int:
     return next_fast_len(n, real=real)
 
 
-def _reverse_and_conj(
-    x: torch.Tensor, dims: list[int] | tuple[int, ...] | None = None
-) -> torch.Tensor:
-    """Reverse `x` along specified dimensions and take the complex conjugate.
-
-    Parameters
-    ----------
-    x : torch.Tensor
-        Input tensor.
-    dims : sequence of int or None, default=None
-        Dimensions along which to reverse. If None, input is reversed in all
-        dimensions.
-
-    Returns
-    -------
-    x_dagger : torch.Tensor
-        The reversed and conjugated tensor.
-    """
-    if dims is None:
-        dims = list(range(x.ndim))
-
-    # Torch's flip is a copy and not a view
-    x_rev = torch.flip(x, dims=dims)
-
-    return torch.conj(x_rev) if x.is_complex() else x_rev
-
-
 def _get_centered(x: torch.Tensor, new_shape: tuple[int, ...]) -> torch.Tensor:
     """Return the center newshape portion of a tensor.
 
@@ -69,7 +42,7 @@ def _get_centered(x: torch.Tensor, new_shape: tuple[int, ...]) -> torch.Tensor:
 
     Returns
     -------
-    x_centered : torch.Tensor
+    x_out : torch.Tensor
         Centered tensor with the new shape.
     """
     output_shape = np.asarray(new_shape)
@@ -97,6 +70,12 @@ def xcorr_via_fft(data: torch.Tensor, waveforms: torch.Tensor) -> torch.Tensor:
         Coefficients of the cross-correlation between `data` and each waveform
         in `waveforms` group.
     """
+    if waveforms.ndim != 2:
+        raise ValueError(
+            f"`waveforms` must be a 2D tensor of shape (n_waveforms, n_samples), "
+            f"but got shape {waveforms.shape}",
+        )
+
     is_complex = data.is_complex() or waveforms.is_complex()
 
     # xcorr -> conv(mode='full')
@@ -108,12 +87,12 @@ def xcorr_via_fft(data: torch.Tensor, waveforms: torch.Tensor) -> torch.Tensor:
     else:
         fft_, ifft_ = torch.fft.rfft, torch.fft.irfft
 
-    # github.com/scipy/scipy/blob/main/scipy/signal/_signaltools.py#L257
-    filter_spectra = fft_(_reverse_and_conj(waveforms, dims=[-1]), n=n_fft)
+    filter_spectra = torch.conj(fft_(waveforms, n=n_fft))
 
     # FFT(data) and add dimension for wavelets: (..., n_fft) -> (..., 1, n_fft)
     data_spectra = fft_(data, n=n_fft).unsqueeze(-2)
 
+    # For iFFT, 'n' controls the output length, not the transform length.
     coeffs = ifft_(filter_spectra * data_spectra, n=n_fft)[..., :n_conv]
 
     # Center with respect to the mode-'full' convolution
