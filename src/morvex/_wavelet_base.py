@@ -1,3 +1,5 @@
+"""Base module for Morlet wavelet containers."""
+
 from __future__ import annotations
 
 import math
@@ -11,21 +13,54 @@ from .tapering import Taper
 from .xcorr import xcorr_via_fft
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes as MplAxes
     from numpy import floating as np_floating
     from numpy.typing import NDArray
-    from plotly.graph_objects import Figure as PlotlyFigure
 
 
 LN2 = math.log(2.0)
 PI = math.pi
 
 
-class MorletWaveletGroup(nn.Module):
-    """Base class for a group of Morlet wavelets."""
+def _validate_center_freqs(
+    center_freqs: Sequence[float] | NDArray[np_floating] | torch.Tensor,
+    sampling_freq: float,
+) -> torch.Tensor:
+    """Validate a sequence of center frequencies and return a tensor."""
+    center_freqs = torch.as_tensor(center_freqs)
+    nyquist = sampling_freq / 2
+    if center_freqs.numel() == 0:
+        raise ValueError("Center frequencies must be non-empty.")
+    if center_freqs.ndim != 1:
+        raise ValueError("Center frequencies must be 1-dimensional.")
+    if torch.any(center_freqs < 0.0) or torch.any(center_freqs >= nyquist):
+        raise ValueError(
+            f"Center frequencies must be within the Nyquist frequency of {nyquist}."
+        )
+    return center_freqs
+
+
+def _validate_shape_ratios(
+    shape_ratios: float | Sequence[float] | NDArray[np_floating] | torch.Tensor,
+    center_freqs: torch.Tensor,
+) -> torch.Tensor:
+    """Validate a sequence of shape ratios and return a tensor."""
+    shape_ratios = torch.as_tensor(shape_ratios)
+    if torch.any(shape_ratios <= 0.0):
+        raise ValueError("Shape ratios must be positive values.")
+    if shape_ratios.numel() != 1 and shape_ratios.shape != center_freqs.shape:
+        raise ValueError(
+            "Shape ratios must be either a scale, or an array-like with the "
+            "same length as center frequencies."
+        )
+    return shape_ratios
+
+
+class _MorletWaveletBase(nn.Module):
+    """Internal base class for Morlet wavelet containers."""
 
     _center_freqs: torch.Tensor
     _shape_ratios: torch.Tensor
+    _waveforms: torch.Tensor
 
     def __init__(
         self,
@@ -68,59 +103,33 @@ class MorletWaveletGroup(nn.Module):
         """
         super().__init__()
 
-        self.time_duration = time_duration
-        self.sampling_freq = sampling_freq
+        self._time_duration = time_duration
+        self._sampling_freq = sampling_freq
         self.register_buffer(
-            name="_center_freqs", tensor=torch.atleast_1d(torch.as_tensor(center_freqs))
+            "_center_freqs",
+            _validate_center_freqs(center_freqs, self._sampling_freq),
+            persistent=False,
         )
         self.register_buffer(
-            name="_shape_ratios", tensor=torch.atleast_1d(torch.as_tensor(shape_ratios))
+            "_shape_ratios",
+            _validate_shape_ratios(shape_ratios, self._center_freqs),
+            persistent=False,
         )
-
-        self._validate_center_freqs()
-        self._validate_shape_ratios()
+        self.register_buffer(
+            "_waveforms",
+            self._compute_waveforms(),
+            persistent=False,
+        )
 
     @property
-    def nyquist_freq(self) -> float:
-        """Nyquist frequency of the wavelets."""
-        return 0.5 * self.sampling_freq
+    def time_duration(self) -> float:
+        """Time duration of the wavelets."""
+        return self._time_duration
 
-    def _validate_center_freqs(self) -> None:
-        """Ensure the center frequencies are valid."""
-        desc = "Center frequencies"
-        if self._center_freqs.numel() == 0:
-            raise ValueError(f"{desc} must contain at least one value.")
-
-        if self._center_freqs.ndim != 1:
-            raise ValueError(f"{desc} must be a 1D array-like object.")
-
-        if not torch.all(self._center_freqs > 0.0):
-            raise ValueError(f"{desc} must be positive values.")
-
-        if not torch.all(self._center_freqs < self.nyquist_freq):
-            raise ValueError(
-                f"{desc} must be less than the Nyquist "
-                f"frequency of {self.nyquist_freq}."
-            )
-
-    def _validate_shape_ratios(self) -> None:
-        """Ensure the shape ratios are valid."""
-        desc = "Shape ratios"
-        if not torch.all(self._shape_ratios > 0.0):
-            raise ValueError(f"{desc} must be positive values.")
-
-        if (
-            self._shape_ratios.numel() != 1
-            and self._shape_ratios.shape != self._center_freqs.shape
-        ):
-            raise ValueError(
-                f"{desc} must be either a length-1 array-like object or "
-                f"have the same length as the center frequencies."
-            )
-
-    def __len__(self) -> int:
-        """Return the number of wavelets in the group."""
-        return self._center_freqs.numel()
+    @property
+    def sampling_freq(self) -> float:
+        """Sampling frequency of the wavelets."""
+        return self._sampling_freq
 
     @property
     def center_freqs(self) -> torch.Tensor:
@@ -133,90 +142,103 @@ class MorletWaveletGroup(nn.Module):
         return self._shape_ratios
 
     @property
+    def waveforms(self) -> torch.Tensor:
+        """Return the values of the wavelets in the time domain.
+
+        Waveforms are complex-valued and centered around zero in time.
+
+        Returns
+        -------
+        waveforms : torch.Tensor of shape (n_wavelets, wavelet_length)
+            Wavelets in the time domain.
+        """
+        return self._waveforms
+
+    @property
     def device(self) -> torch.device:
         """Get the device on which the wavelet parameters are stored."""
         return self._center_freqs.device
 
     @property
     def dtype(self) -> torch.dtype:
-        """Get the data type of the wavelet parameters."""
+        """Get the data-type of the wavelet parameters."""
         return self._center_freqs.dtype
 
     @property
     def delta_t(self) -> float:
         """Sampling interval of the wavelets."""
-        return 1.0 / self.sampling_freq
+        return 1.0 / self._sampling_freq
 
     @property
-    def n_t(self) -> int:
+    def n_samples(self) -> int:
         """Number of time samples of the wavelets."""
-        return int(round(self.time_duration * self.sampling_freq)) + 1
+        return int(round(self._time_duration * self._sampling_freq)) + 1
 
     @property
     def times(self) -> torch.Tensor:
         """Time points of the wavelets, centered around zero."""
         return (
-            torch.arange(self.n_t, dtype=self.dtype, device=self.device) * self.delta_t
-            - 0.5 * self.time_duration
+            torch.arange(self.n_samples, dtype=self.dtype, device=self.device)
+            * self.delta_t
+            - 0.5 * self._time_duration
         )
 
     @property
     def time_widths(self) -> torch.Tensor:
         """Time widths of the wavelets.
 
+        The units of the time widths are the same as the `time_duration`
+        parameter.
+
         Returns
         -------
-        out : torch.Tensor of shape (n_center_freqs,)
-            Time widths of the wavelets. They are in the same units as the
-            `time_duration` parameter.
+        out : torch.Tensor of shape (n_wavelets,)
+            Time widths of the wavelets.
         """
-        return self.shape_ratios / self.center_freqs
+        return self._shape_ratios / self._center_freqs
 
     @property
     def freq_widths(self) -> torch.Tensor:
         """Frequency widths (bandwidths) of the wavelets.
 
+        The units of the frequency widths are the same as the `sampling_freq`
+        parameter.
+
         Returns
         -------
-        out : torch.Tensor of shape (n_center_freqs,)
-            Frequency widths of the wavelets. They are in the same units as
-            the `sampling_freq`.
+        out : torch.Tensor of shape (n_wavelets,)
+            Frequency widths of the wavelets.
         """
         return (4.0 * LN2) / (PI * self.time_widths)
 
     @property
     def omega0s(self) -> torch.Tensor:
         """Angular frequencies of the wavelets (a.k.a. `omega0`s)."""
-        return (self.shape_ratios * PI) / math.sqrt(2.0 * LN2)
+        return (self._shape_ratios * PI) / math.sqrt(2.0 * LN2)
 
     @property
     def scales(self) -> torch.Tensor:
         """Scales of the wavelets."""
-        return (self.omega0s * self.sampling_freq) / (2.0 * PI * self.center_freqs)
+        return (self.omega0s * self._sampling_freq) / (2.0 * PI * self._center_freqs)
 
-    @property
-    def waveforms(self) -> torch.Tensor:
-        """Return the values of the wavelets in the time domain.
+    def _compute_waveforms(self) -> torch.Tensor:
+        """Compute the values of the wavelets (waveforms) in the time domain.
+
+        Waveforms are complex-valued and centered around zero time.
 
         Returns
         -------
-        waveforms : torch.Tensor of shape (n_center_freqs, n_times)
-            Wavelets in the time domain. They are complex-valued and centered
-            around zero in time.
+        waveforms : torch.Tensor of shape (n_wavelets, wavelet_length)
+            Wavelets in the time domain.
         """
-        # Gaussian envelope
-        t_over_dt = self.times / self.time_widths[:, None]
-        gaussian = torch.exp(-4.0 * LN2 * t_over_dt**2)
+        t = self.times  # (n_samples,)
+        tw = self.time_widths[:, None]  # (n_cfreqs, 1)
+        cf = self._center_freqs[:, None]  # (n_cfreqs, 1)
 
-        # Oscillatory component
-        oscillation = torch.exp(1j * 2.0 * PI * self.center_freqs[:, None] * self.times)
+        gaussian = torch.exp(-4.0 * LN2 * torch.square(t / tw))
+        oscillation = torch.exp(1j * 2.0 * PI * cf * t)
 
         return gaussian * oscillation
-
-    @property
-    def max_spec_amps(self) -> torch.Tensor:
-        """Maximum amplitudes of the Fourier spectra of the wavelets."""
-        return 0.5 * math.sqrt(PI / LN2) * self.time_widths
 
     def forward(
         self,
@@ -228,34 +250,33 @@ class MorletWaveletGroup(nn.Module):
 
         Parameters
         ----------
-        data : torch.Tensor or ndarray of shape (..., n_times)
-            Input signal(s) to be analyzed.
+        data : torch.Tensor or ndarray of shape (..., signal_length)
+            Input signal(s) to be analysed.
         taper : Taper or None, default=None
             Tapering module to apply to the input signal(s) before computing
             the wavelet transform. If None, a default Hann taper with a
             maximum fade length of 5% of the signal length will be applied.
         coeff_type : {'power', 'magnitude', 'complex'}, default='power'
-            Specifies the type of the wavelet coefficients to return:
+            The type of the wavelet-transform coefficients to return:
                 - `'power'`: squared magnitude of the coefficients.
                 - `'magnitude'`: absolute magnitude of the coefficients.
                 - `'complex'`: complex-valued coefficients.
 
         Returns
         -------
-        coeffs : torch.Tensor of shape (..., n_center_freqs, n_times)
+        coeffs : torch.Tensor of shape (..., n_wavelets, signal_length)
             Wavelet-transformed coefficients of the input signal(s). The shape
             of the output tensor depends on the shape of the input signal(s):
 
             | Input shape | Output shape   |
             |-------------|----------------|
-            | `(L,)`      | `(F, L)`       |
-            | `(B, L)`    | `(B, F, L)`    |
-            | `(C, L)`    | `(C, F, L)`    |
-            | `(B, C, L)` | `(B, C, F, L)` |
+            | `(L,)`      | `(M, L)`       |
+            | `(C, L)`    | `(C, M, L)`    |
+            | `(B, C, L)` | `(B, C, M, L)` |
 
-            where `L` is the number of time samples in the input signal(s), `F`
-            is the number of wavelets (i.e., center frequencies) in the group,
-            `B` is the batch size, and `C` is the number of channels.
+            where `L` is the length of the signal(s) in samples, `M` is the
+            number of wavelets, `C` is the number of channels, and `B` is the
+            batch size.
         """
         if coeff_type not in {"power", "magnitude", "complex"}:
             raise ValueError(
@@ -273,7 +294,7 @@ class MorletWaveletGroup(nn.Module):
                 side="both",
             ).to(device=self.device, dtype=self.dtype)
 
-        # Deman + taper
+        # Demean + taper
         x_in = x_in - x_in.mean(dim=-1, keepdim=True)
         x_in = taper(x_in)
 
@@ -287,12 +308,9 @@ class MorletWaveletGroup(nn.Module):
         else:  # coeff_type == "complex":
             return coeffs
 
-    def transform(self, *args, **kwargs) -> torch.Tensor:
-        """Alias for the forward method."""
-        return self.forward(*args, **kwargs)
-
+    @torch.no_grad()
     def get_freq_resps(
-        self, n_fft: int | None = None, normalize: bool = True
+        self, n_fft: int | None = None, scaled: bool = True
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Return the frequency responses of the wavelets.
 
@@ -302,140 +320,43 @@ class MorletWaveletGroup(nn.Module):
             Number of FFT points to use for computing the frequency responses.
             If None, the next power of two greater than or equal to `n_t`
             will be used.
-        normalize : bool, default=True
-            Whether to return the normalised responses.
+        scaled : bool, default=True
+            Whether to return the scaled responses. If False, the responses
+            are normalised to one.
 
         Returns
         -------
         freqs : torch.Tensor of shape (n_freqs,)
             Frequency points.
-        resps : torch.Tensor of shape (n_center_freqs, n_freqs)
+        resps : torch.Tensor of shape (n_wavelets, n_freqs)
             Frequency responses of the wavelets.
         """
         if n_fft is None:
-            n_fft = int(2 ** math.ceil(math.log2(self.n_t)))
+            n_fft = int(2 ** math.ceil(math.log2(self.n_samples)))
 
-        n_fft = max(n_fft, self.n_t)
+        n_fft = max(n_fft, self.n_samples)
         rfreqs = rfftfreq(n=n_fft, d=self.delta_t, device=self.device, dtype=self.dtype)
 
-        phase_diffs = 2.0 * PI * (rfreqs - self.center_freqs[:, None])
+        phase_diffs = 2.0 * PI * (rfreqs - self._center_freqs[:, None])
         resps = torch.exp(
             -1.0 * torch.square(self.time_widths[:, None] * phase_diffs) / (16.0 * LN2)
         )
 
-        if not normalize:
-            resps = resps * self.max_spec_amps[:, None]
+        if scaled:
+            # Maximum amplitudes of the Fourier spectra of the wavelets
+            max_spec_amps = 0.5 * math.sqrt(PI / LN2) * self.time_widths
+            resps = resps * max_spec_amps[:, None]
 
         return rfreqs, resps
 
-    def plot_freq_resps_mpl(
-        self,
-        ax: MplAxes,
-        n_fft: int | None = None,
-        normalize: bool = True,
-        color: str | None = None,
-        auto_xlabel: bool = True,
-        auto_ylabel: bool = True,
-        auto_title: bool = True,
-    ) -> MplAxes:
-        """Plot the frequency responses of the wavelets using Matplotlib.
+    def __len__(self) -> int:
+        """Return the number of wavelets in the group."""
+        return self._center_freqs.numel()
 
-        Parameters
-        ----------
-        ax : Axes
-            The Matplotlib axes to plot the frequency responses.
-        n_fft : int or None, default=None
-            Number of FFT points to use for computing the frequency responses.
-            If None, the next power of two greater than or equal to `n_t`
-            will be used.
-        normalize : bool, default=True
-            Whether to plot the normalized responses.
-        color : str or None, default=None
-            Color to use for plotting the frequency responses. If None, the
-            default color cycle of Matplotlib will be used.
-        auto_xlabel : bool, default=True
-            Whether to automatically set the x-axis label.
-        auto_ylabel : bool, default=True
-            Whether to automatically set the y-axis label.
-        auto_title : bool, default=True
-            Whether to automatically set the title.
-
-        Returns
-        -------
-        ax : Axes
-            Matplotlib axes displaying the frequency responses.
-        """
-        freqs_, resps_ = self.get_freq_resps(n_fft, normalize=normalize)
-
-        freqs = freqs_.detach().cpu().numpy()
-        resps = resps_.detach().cpu().numpy()
-
-        for resp in resps:
-            ax.plot(freqs, resp, color=color)
-
-        if auto_xlabel:
-            ax.set_xlabel("Frequency")
-        if auto_ylabel:
-            ax.set_ylabel("Amplitude, normalised" if normalize else "Amplitude")
-        if auto_title:
-            ax.set_title("Wavelets Frequency Responses")
-        return ax
-
-    def plot_freq_resps_plotly(
-        self,
-        fig: PlotlyFigure,
-        n_fft: int | None = None,
-        normalize: bool = True,
-        color: str | None = None,
-        auto_xlabel: bool = True,
-        auto_ylabel: bool = True,
-        auto_title: bool = True,
-    ) -> PlotlyFigure:
-        """Plot the frequency responses of the wavelets using Plotly.
-
-        Parameters
-        ----------
-        fig : PlotlyFigure
-            The Plotly figure to plot the frequency responses.
-        normalize : bool, default=True
-            Whether to plot the normalized responses.
-        n_fft : int or None, default=None
-            Number of FFT points to use for computing the frequency responses.
-            If None, the next power of two greater than or equal to `n_t`
-            will be used.
-        color : str or None, default=None
-            Color to use for plotting the frequency responses. If None, the
-            default color cycle of Plotly will be used.
-        auto_xlabel : bool, default=True
-            Whether to automatically set the x-axis label.
-        auto_ylabel : bool, default=True
-            Whether to automatically set the y-axis label.
-        auto_title : bool, default=True
-            Whether to automatically set the title.
-
-        Returns
-        -------
-        fig: PlotlyFigure
-            Plotly figure displaying the frequency responses.
-        """
-        from plotly import graph_objects as go
-
-        freqs_, resps_ = self.get_freq_resps(n_fft, normalize=normalize)
-
-        # Convert to numpy for plotting
-        freqs = freqs_.detach().cpu().numpy()
-        resps = resps_.detach().cpu().numpy()
-
-        for resp in resps:
-            fig.add_trace(go.Scatter(x=freqs, y=resp, showlegend=False))
-
-        if auto_xlabel:
-            fig.update_xaxes(title_text="Frequency")
-        if auto_ylabel:
-            fig.update_yaxes(
-                title_text="Amplitude, normalised" if normalize else "Amplitude"
-            )
-        if auto_title:
-            fig.update_layout(title="Wavelets Frequency Responses")
-
-        return fig
+    def __repr__(self) -> str:
+        """Return a string representation of the wavelet group."""
+        return (
+            f"{self.__class__.__name__} with {len(self)} wavelets, "
+            f"sampling rate={self.sampling_rate:.4f}, "
+            f"time duration={self.time_duration:.4f}"
+        )
