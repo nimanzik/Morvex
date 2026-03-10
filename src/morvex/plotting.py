@@ -1,3 +1,5 @@
+"""Plotting time-frequency (TF) plane."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -10,9 +12,128 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes as MplAxes
     from matplotlib.colors import Colormap
     from numpy.typing import NDArray
+    from plotly.graph_objects import Figure as PlotlyFigure
+
+    def plot_freq_resps(
+        firler_bank,
+        ax: MplAxes,
+        n_fft: int | None = None,
+        scaled: bool = False,
+        color: str | None = None,
+        auto_xlabel: bool = True,
+        auto_ylabel: bool = True,
+        auto_title: bool = True,
+    ) -> MplAxes:
+        """Plot the frequency responses of the wavelets using Matplotlib.
+
+        Parameters
+        ----------
+        firler_bank : FilterBank
+            The filter bank to plot the frequency responses.
+        ax : Axes
+            The Matplotlib axes to plot the frequency responses.
+        n_fft : int or None, default=None
+            Number of FFT points to use for computing the frequency responses.
+            If None, the next power of two greater than or equal to `n_t`
+            will be used.
+        scaled : bool, default=False
+            Whether to plot the scaled responses. If False, the responses
+            are normalised to one.
+        color : str or None, default=None
+            Color to use for plotting the frequency responses. If None, the
+            default color cycle of Matplotlib will be used.
+        auto_xlabel : bool, default=True
+            Whether to automatically set the x-axis label.
+        auto_ylabel : bool, default=True
+            Whether to automatically set the y-axis label.
+        auto_title : bool, default=True
+            Whether to automatically set the title.
+
+        Returns
+        -------
+        ax : Axes
+            Matplotlib axes displaying the frequency responses.
+        """
+        freqs_, resps_ = firler_bank.get_freq_resps(n_fft, scaled=scaled)
+
+        freqs = freqs_.detach().cpu().numpy()
+        resps = resps_.detach().cpu().numpy()
+
+        for resp in resps:
+            ax.plot(freqs, resp, color=color)
+
+        if auto_xlabel:
+            ax.set_xlabel("Frequency")
+        if auto_ylabel:
+            ax.set_ylabel("Amplitude" if scaled else "Amplitude (normalised)")
+        if auto_title:
+            ax.set_title("Wavelets Frequency Responses")
+        return ax
+
+    def plot_freq_resps_plotly(
+        filter_bank,
+        fig: PlotlyFigure,
+        n_fft: int | None = None,
+        scaled: bool = False,
+        color: str | None = None,
+        auto_xlabel: bool = True,
+        auto_ylabel: bool = True,
+        auto_title: bool = True,
+    ) -> PlotlyFigure:
+        """Plot the frequency responses of the wavelets using Plotly.
+
+        Parameters
+        ----------
+        filter_bank : FilterBank
+            The filter bank to plot the frequency responses.
+        fig : PlotlyFigure
+            The Plotly figure to plot the frequency responses.
+        n_fft : int or None, default=None
+            Number of FFT points to use for computing the frequency responses.
+            If None, the next power of two greater than or equal to `n_t`
+            will be used.
+        scaled : bool, default=False
+            Whether to plot the scaled responses. If False, the responses
+            are normalised to one.
+        color : str or None, default=None
+            Color to use for plotting the frequency responses. If None, the
+            default color cycle of Plotly will be used.
+        auto_xlabel : bool, default=True
+            Whether to automatically set the x-axis label.
+        auto_ylabel : bool, default=True
+            Whether to automatically set the y-axis label.
+        auto_title : bool, default=True
+            Whether to automatically set the title.
+
+        Returns
+        -------
+        fig: PlotlyFigure
+            Plotly figure displaying the frequency responses.
+        """
+        from plotly import graph_objects as go
+
+        freqs_, resps_ = filter_bank.get_freq_resps(n_fft, scaled=scaled)
+
+        # Convert to numpy for plotting
+        freqs = freqs_.detach().cpu().numpy()
+        resps = resps_.detach().cpu().numpy()
+
+        for resp in resps:
+            fig.add_trace(go.Scatter(x=freqs, y=resp, showlegend=False))
+
+        if auto_xlabel:
+            fig.update_xaxes(title_text="Frequency")
+        if auto_ylabel:
+            fig.update_yaxes(
+                title_text="Amplitude" if scaled else "Amplitude (normalised)"
+            )
+        if auto_title:
+            fig.update_layout(title="Wavelets Frequency Responses")
+
+        return fig
 
 
-def plot_tf_plane(
+def plot_time_freq_plane(
     ax: MplAxes,
     freqs: NDArray,
     times: NDArray,
@@ -24,7 +145,7 @@ def plot_tf_plane(
     auto_ylabel: bool = True,
     auto_cbar: bool = True,
 ) -> MplAxes:
-    """Plot the time-frequency (TF) plane.
+    """Plot time-frequency (TF) plane.
 
     Parameters
     ----------
@@ -61,7 +182,7 @@ def plot_tf_plane(
         )
 
     # Downsample the frequency dimension if it is too large
-    freqs, xgram = _downsample_fdim(freqs, xgram)
+    freqs, xgram = _downsample_freq_dim(freqs, xgram)
 
     # Convert to decibel scale if needed
     if log_scale:
@@ -117,7 +238,7 @@ def _downsample_plan(n_original: int, n_max: int) -> tuple[int, int]:
     return n_ds, n_mean
 
 
-def _downsample_fdim(freqs: NDArray, xgram: NDArray) -> tuple[NDArray, NDArray]:
+def _downsample_freq_dim(freqs: NDArray, xgram: NDArray) -> tuple[NDArray, NDArray]:
     max_num_freqs = 500
 
     n_freqs, n_times = xgram.shape
