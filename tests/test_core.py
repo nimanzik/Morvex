@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from morvex import MorletWavelet, MorletWaveletGroup, compute_morlet_center_freqs
+from morvex import MorletFilterBank, MorletWavelet, compute_morlet_center_freqs
 
 
 class TestMorletWavelet:
@@ -73,28 +73,32 @@ class TestMorletWavelet:
         np.testing.assert_allclose(power_result, magnitude_result**2, rtol=1e-10)
 
 
-class TestMorletWaveletGroup:
-    """Test cases for MorletWaveletGroup class."""
+class TestMorletFilterBank:
+    """Test cases for MorletFilterBank class."""
 
     def test_initialization(self):
-        """Test MorletWaveletGroup initialization."""
-        group = MorletWaveletGroup(
-            center_freqs=[5.0, 10.0, 20.0],
-            shape_ratios=[3.0, 5.0, 7.0],
+        """Test MorletFilterBank initialization."""
+        bank = MorletFilterBank(
+            n_octaves=2,
+            n_intervals=4,
+            shape_ratio=5.0,
             duration=1.0,
             sampling_freq=100.0,
         )
 
-        assert len(group.center_freqs) == 3
-        assert len(group.shape_ratios) == 3
-        np.testing.assert_array_equal(group.center_freqs, [5.0, 10.0, 20.0])
-        np.testing.assert_array_equal(group.shape_ratios, [3.0, 5.0, 7.0])
+        assert bank.n_octaves == 2
+        assert bank.n_intervals == 4
+        assert bank.shape_ratio == 5.0
+        assert bank.center_freqs.ndim == 1
+        assert len(bank.center_freqs) > 0
+        np.testing.assert_allclose(bank.shape_ratios, 5.0)
 
     def test_transform_multiscale(self):
         """Test multiscale wavelet transform."""
-        group = MorletWaveletGroup(
-            center_freqs=[5.0, 10.0, 20.0],
-            shape_ratios=[5.0, 5.0, 5.0],
+        bank = MorletFilterBank(
+            n_octaves=2,
+            n_intervals=4,
+            shape_ratio=5.0,
             duration=1.0,
             sampling_freq=100.0,
         )
@@ -107,10 +111,10 @@ class TestMorletWaveletGroup:
             + np.sin(2 * np.pi * 20 * t)
         )
 
-        result = group.transform(signal, mode="power")
+        result = bank.transform(signal, mode="power")
 
         # Result should have shape (n_wavelets, n_times)
-        assert result.shape == (3, 100)
+        assert result.shape == (len(bank.center_freqs), 100)
         assert result.dtype == np.float64
 
 
