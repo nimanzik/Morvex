@@ -1,10 +1,12 @@
+"""Complex Morlet-wavelet filter bank."""
+
 from __future__ import annotations
 
 import math
 
 import torch
 
-from .wavelet_group import MorletWaveletGroup
+from ._wavelet_base import _MorletWaveletBase
 
 LN2 = math.log(2.0)
 PI = math.pi
@@ -51,7 +53,7 @@ def _compute_morlet_center_freqs(
     return center_freqs[mask]
 
 
-class MorletFilterBank(MorletWaveletGroup):
+class MorletFilterBank(_MorletWaveletBase):
     """Complex Morlet-wavelet filter bank with constant-Q properties."""
 
     def __init__(
