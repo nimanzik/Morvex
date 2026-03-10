@@ -1,16 +1,18 @@
+"""Complex Morlet wavelet with constant-Q properties."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 import torch
 
-from .wavelet_group import MorletWaveletGroup
+from ._wavelet_base import _MorletWaveletBase
 
 if TYPE_CHECKING:
     import torch
 
 
-class MorletWavelet(MorletWaveletGroup):
+class MorletWavelet(_MorletWaveletBase):
     """Complex Morlet wavelet with constant-Q properties."""
 
     def __init__(
@@ -121,7 +123,7 @@ class MorletWavelet(MorletWaveletGroup):
         out : torch.Tensor of shape (n_fft,)
             Frequency response of the wavelet.
         """
-        freqs, resps = super().get_freq_resps(n_fft=n_fft, normalize=normalize)
+        freqs, resps = super().get_freq_resps(n_fft=n_fft, scaled=normalize)
         return freqs, resps.squeeze(0)
 
     def __repr__(self) -> str:
