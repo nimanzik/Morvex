@@ -58,22 +58,22 @@ def xcorr_via_fft(data: torch.Tensor, waveforms: torch.Tensor) -> torch.Tensor:
 
     Parameters
     ----------
-    data : torch.Tensor of shape (..., n_samples)
+    data : torch.Tensor of shape (..., signal_length)
         Input data to be analysed.
-    waveforms : torch.Tensor of shape (n_waveforms, n_samples)
+    waveforms : torch.Tensor of shape (n_waveforms, waveform_length)
         Waveforms (of a wavelet group, for example) to be cross-correlated
         with `data`.
 
     Returns
     -------
-    coeffs : torch.Tensor of shape (..., n_waveforms, n_samples)
+    coeffs : torch.Tensor of shape (..., n_waveforms, signal_length)
         Coefficients of the cross-correlation between `data` and each waveform
         in `waveforms` group.
     """
     if waveforms.ndim != 2:
         raise ValueError(
-            f"`waveforms` must be a 2D tensor of shape (n_waveforms, n_samples), "
-            f"but got shape {waveforms.shape}",
+            f"`waveforms` must be a 2D tensor of shape "
+            f"(n_waveforms, waveform_length), but got shape {waveforms.shape}",
         )
 
     is_complex = data.is_complex() or waveforms.is_complex()
