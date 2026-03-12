@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 
 import torch
+from pydantic import BaseModel, PositiveFloat, PositiveInt, ValidationError
 
 from ._wavelet_base import _MorletWaveletBase
 
@@ -12,45 +13,12 @@ LN2 = math.log(2.0)
 PI = math.pi
 
 
-def _compute_morlet_center_freqs(
-    n_octaves: int, resolutions: int, shape_ratio: float, sampling_freq: float
-) -> torch.Tensor:
-    """Compute the center frequencies of a complex Morlet-wavelet filter bank.
-
-    Parameters
-    ----------
-    n_octaves : int
-        Number of octaves.
-    resolutions : int
-        Number of frequency intervals per octave. The total number of wavelets
-        in the filter bank will be `n_octaves * resolutions + 1`.
-    shape_ratio : float
-        Shape ratio of the wavelet.
-    sampling_freq : float
-        Sampling frequency of the wavelet.
-
-    Returns
-    -------
-    center_freqs : ndarray of shape (n_center_freqs,)
-        Center frequencies of the wavelets.
-    """
-    if n_octaves <= 0 or resolutions <= 0:
-        raise ValueError("Number of octaves and intervals must be positive.")
-
-    if shape_ratio <= 0:
-        raise ValueError(
-            f"Shape ratio must be a positive value, but got {shape_ratio}."
-        )
-
-    if sampling_freq <= 0:
-        raise ValueError("Sampling frequency must be positive.")
-
-    n_cf = n_octaves * resolutions + 1
-    ratios = torch.linspace(-(n_octaves + 1), -1, n_cf)
-    center_freqs = torch.exp2(ratios) * sampling_freq
-    freq_widths = (4.0 * LN2 * center_freqs) / (PI * shape_ratio)
-    mask = (center_freqs + 0.5 * freq_widths) < (0.5 * sampling_freq)
-    return center_freqs[mask]
+class MorletFilterBankConfig(BaseModel):
+    n_octaves: PositiveInt
+    resolution: PositiveInt
+    shape_ratio: PositiveFloat
+    time_duration: PositiveFloat
+    sampling_freq: PositiveFloat
 
 
 class MorletFilterBank(_MorletWaveletBase):
@@ -72,7 +40,7 @@ class MorletFilterBank(_MorletWaveletBase):
             Number of octaves.
         resolution : int
             Number of frequency intervals per octave. The total number of
-            wavelets in the filter bank will be `n_octaves * resolutions + 1`.
+            wavelets in the filter bank will be `n_octaves * resolution + 1`.
         shape_ratio : float
             Shape ratio of the wavelets.
         time_duration : float
@@ -97,8 +65,19 @@ class MorletFilterBank(_MorletWaveletBase):
           | milliseconds | kHz             |
           | microseconds | MHz             |
         """
+        try:
+            cfg = MorletFilterBankConfig(
+                n_octaves=n_octaves,
+                resolution=resolution,
+                shape_ratio=shape_ratio,
+                time_duration=time_duration,
+                sampling_freq=sampling_freq,
+            )
+        except ValidationError as e:
+            raise ValueError(f"Invalid filter bank configuration: {e}") from e
+
         center_freqs = _compute_morlet_center_freqs(
-            n_octaves, resolution, shape_ratio, sampling_freq
+            cfg.n_octaves, cfg.resolution, cfg.shape_ratio, cfg.sampling_freq
         )
         super().__init__(
             center_freqs=center_freqs,
@@ -108,7 +87,11 @@ class MorletFilterBank(_MorletWaveletBase):
         )
         self.n_octaves = n_octaves
         self.resolution = resolution
-        self.shape_ratio = shape_ratio
+
+    @property
+    def shape_ratio(self) -> float:
+        """Shape ratio of the wavelets."""
+        return self._shape_ratios.item()
 
     @property
     def omega0(self) -> float:
@@ -121,6 +104,39 @@ class MorletFilterBank(_MorletWaveletBase):
             f"J={self.n_octaves}, "
             f"Q={self.resolution}, "
             f"kappa={self.shape_ratio}, "
-            f"tau={self.time_duration}, "
-            f"fs={self.sampling_freq})"
+            f"nw={len(self)}, "
+            f"tau={self.time_duration:.4f}, "
+            f"fs={self.sampling_freq:.4f})"
         )
+
+
+def _compute_morlet_center_freqs(
+    n_octaves: int, resolution: int, shape_ratio: float, sampling_freq: float
+) -> torch.Tensor:
+    """Compute the center frequencies of a complex Morlet-wavelet filter bank.
+
+    Parameters
+    ----------
+    n_octaves : int
+        Number of octaves.
+    resolution : int
+        Number of frequency intervals per octave. The total number of wavelets
+        in the filter bank will be `n_octaves * resolution + 1`.
+    shape_ratio : float
+        Shape ratio of the wavelets.
+    sampling_freq : float
+        Sampling frequency of the wavelet.
+
+    Returns
+    -------
+    center_freqs : Tensor of shape (n_center_freqs,)
+        Center frequencies of the wavelets.
+    """
+    # No validation is done here since the function is called internally
+    # after the configuration has been validated.
+    n_cf = n_octaves * resolution + 1
+    ratios = torch.linspace(-(n_octaves + 1), -1, n_cf)
+    center_freqs = torch.exp2(ratios) * sampling_freq
+    freq_widths = (4.0 * LN2 * center_freqs) / (PI * shape_ratio)
+    mask = (center_freqs + 0.5 * freq_widths) < (0.5 * sampling_freq)
+    return center_freqs[mask]
