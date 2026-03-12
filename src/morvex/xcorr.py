@@ -3,19 +3,18 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import cast
 
 import numpy as np
 import torch
 from scipy.fft import next_fast_len
-
-_CACHED_NEXT_FAST_LEN: dict[int, int] = {}
 
 
 @lru_cache(maxsize=256)
 def _next_fast_len(n: int, real: bool) -> int:
     """Cache results of next_fast_len for performance and thread safety.
 
-    See `scipy.fft.next_fast_len` for documentation.
+    See `scipy.fft.next_fast_len` for more details.
 
     Parameters
     ----------
@@ -25,7 +24,7 @@ def _next_fast_len(n: int, real: bool) -> int:
         Set to True if FFT involves real-valued input or output (i.e., rfft
         and irfft), False for complex-valued FFT (i.e., fft and ifft).
     """
-    return next_fast_len(n, real=real)
+    return cast("int", next_fast_len(n, real=real))
 
 
 def _get_centered(x: torch.Tensor, new_shape: tuple[int, ...]) -> torch.Tensor:
@@ -35,14 +34,14 @@ def _get_centered(x: torch.Tensor, new_shape: tuple[int, ...]) -> torch.Tensor:
 
     Parameters
     ----------
-    x : torch.Tensor
+    x : Tensor
         Input tensor.
     new_shape : tuple of int
         Desired shape of the output tensor.
 
     Returns
     -------
-    x_out : torch.Tensor
+    x_out : Tensor
         Centered tensor with the new shape.
     """
     output_shape = np.asarray(new_shape)
@@ -58,15 +57,15 @@ def xcorr_via_fft(data: torch.Tensor, waveforms: torch.Tensor) -> torch.Tensor:
 
     Parameters
     ----------
-    data : torch.Tensor of shape (..., signal_length)
+    data : Tensor of shape (..., signal_length)
         Input data to be analysed.
-    waveforms : torch.Tensor of shape (n_waveforms, waveform_length)
+    waveforms : Tensor of shape (n_waveforms, waveform_length)
         Waveforms (of a wavelet group, for example) to be cross-correlated
         with `data`.
 
     Returns
     -------
-    coeffs : torch.Tensor of shape (..., n_waveforms, signal_length)
+    coeffs : Tensor of shape (..., n_waveforms, signal_length)
         Coefficients of the cross-correlation between `data` and each waveform
         in `waveforms` group.
     """
