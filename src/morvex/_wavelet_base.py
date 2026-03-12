@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import math
+from enum import StrEnum
+from functools import lru_cache
 from typing import TYPE_CHECKING, Literal, Sequence
 
 import torch
@@ -21,38 +23,10 @@ LN2 = math.log(2.0)
 PI = math.pi
 
 
-def _validate_center_freqs(
-    center_freqs: Sequence[float] | NDArray[np_floating] | torch.Tensor,
-    sampling_freq: float,
-) -> torch.Tensor:
-    """Validate a sequence of center frequencies and return a tensor."""
-    center_freqs = torch.as_tensor(center_freqs)
-    nyquist = sampling_freq / 2
-    if center_freqs.numel() == 0:
-        raise ValueError("Center frequencies must be non-empty.")
-    if center_freqs.ndim != 1:
-        raise ValueError("Center frequencies must be 1-dimensional.")
-    if torch.any(center_freqs < 0.0) or torch.any(center_freqs >= nyquist):
-        raise ValueError(
-            f"Center frequencies must be within the Nyquist frequency of {nyquist}."
-        )
-    return center_freqs
-
-
-def _validate_shape_ratios(
-    shape_ratios: float | Sequence[float] | NDArray[np_floating] | torch.Tensor,
-    center_freqs: torch.Tensor,
-) -> torch.Tensor:
-    """Validate a sequence of shape ratios and return a tensor."""
-    shape_ratios = torch.as_tensor(shape_ratios)
-    if torch.any(shape_ratios <= 0.0):
-        raise ValueError("Shape ratios must be positive values.")
-    if shape_ratios.numel() != 1 and shape_ratios.shape != center_freqs.shape:
-        raise ValueError(
-            "Shape ratios must be either a scale, or an array-like with the "
-            "same length as center frequencies."
-        )
-    return shape_ratios
+class CoeffType(StrEnum):
+    POWER = "power"
+    MAGNITUDE = "magnitude"
+    COMPLEX = "complex"
 
 
 class _MorletWaveletBase(nn.Module):
@@ -65,9 +39,10 @@ class _MorletWaveletBase(nn.Module):
     def __init__(
         self,
         center_freqs: Sequence[float] | NDArray[np_floating] | torch.Tensor,
-        shape_ratios: Sequence[float] | NDArray[np_floating] | torch.Tensor,
+        shape_ratios: float | Sequence[float] | NDArray[np_floating] | torch.Tensor,
         time_duration: float,
         sampling_freq: float,
+        dtype: torch.dtype | None = None,
     ) -> None:
         """Initialise the Morlet wavelet group.
 
@@ -75,10 +50,10 @@ class _MorletWaveletBase(nn.Module):
         ----------
         center_freqs : array-like of float
             Center frequencies of the wavelets.
-        shape_ratios : array-like of float
-            Shape ratios of the wavelets. It should be an array-like object
-            object with either a single value (common for all wavelets) or the
-            same length as the `center_freqs`.
+        shape_ratios : float or array-like of float
+            Shape ratios of the wavelets. It should be either a single value
+            (common for all wavelets) or an array-like object with the same
+            length as `center_freqs`.
         time_duration : float
             Time duration of the wavelets, common for all wavelets in the
             group. It should be long enough to capture the oscillations of
@@ -88,6 +63,10 @@ class _MorletWaveletBase(nn.Module):
             Sampling frequency of the wavelets, common for all wavelets in the
             group. It should be the same as the sampling frequency of the
             signals to be analysed.
+        dtype : torch.dtype or None, optional
+            Data type of the wavelet parameters. If `None` (default),
+            :func:`torch.get_default_dtype()` is called to determine and use
+            the current default floating-point dtype.
 
         Notes
         -----
@@ -105,21 +84,14 @@ class _MorletWaveletBase(nn.Module):
 
         self._time_duration = time_duration
         self._sampling_freq = sampling_freq
-        self.register_buffer(
-            "_center_freqs",
-            _validate_center_freqs(center_freqs, self._sampling_freq),
-            persistent=False,
-        )
-        self.register_buffer(
-            "_shape_ratios",
-            _validate_shape_ratios(shape_ratios, self._center_freqs),
-            persistent=False,
-        )
-        self.register_buffer(
-            "_waveforms",
-            self._compute_waveforms(),
-            persistent=False,
-        )
+
+        cf_tensor = _coerce_validate_center_freqs(center_freqs, sampling_freq, dtype)
+        self.register_buffer("_center_freqs", cf_tensor, persistent=False)
+
+        sr_tensor = _coerce_validate_shape_ratios(shape_ratios, cf_tensor)
+        self.register_buffer("_shape_ratios", sr_tensor, persistent=False)
+
+        self.register_buffer("_waveforms", self._compute_waveforms(), persistent=False)
 
     @property
     def time_duration(self) -> float:
@@ -149,7 +121,7 @@ class _MorletWaveletBase(nn.Module):
 
         Returns
         -------
-        waveforms : torch.Tensor of shape (n_wavelets, wavelet_length)
+        waveforms : Tensor of shape (n_wavelets, wavelet_length)
             Wavelets in the time domain.
         """
         return self._waveforms
@@ -171,7 +143,7 @@ class _MorletWaveletBase(nn.Module):
 
     @property
     def n_samples(self) -> int:
-        """Number of time samples of the wavelets."""
+        """Number of samples (time points) of the wavelets."""
         return int(round(self._time_duration * self._sampling_freq)) + 1
 
     @property
@@ -192,7 +164,7 @@ class _MorletWaveletBase(nn.Module):
 
         Returns
         -------
-        out : torch.Tensor of shape (n_wavelets,)
+        out : Tensor of shape (n_wavelets,)
             Time widths of the wavelets.
         """
         return self._shape_ratios / self._center_freqs
@@ -206,14 +178,20 @@ class _MorletWaveletBase(nn.Module):
 
         Returns
         -------
-        out : torch.Tensor of shape (n_wavelets,)
+        out : Tensor of shape (n_wavelets,)
             Frequency widths of the wavelets.
         """
         return (4.0 * LN2) / (PI * self.time_widths)
 
     @property
     def omega0s(self) -> torch.Tensor:
-        """Angular frequencies of the wavelets (a.k.a. `omega0`s)."""
+        """Angular frequencies of the wavelets (a.k.a. `omega0`s).
+
+        Returns
+        -------
+        out : Tensor of shape (n_wavelets,) or (1,)
+            Angular frequencies of the wavelets.
+        """
         return (self._shape_ratios * PI) / math.sqrt(2.0 * LN2)
 
     @property
@@ -228,12 +206,12 @@ class _MorletWaveletBase(nn.Module):
 
         Returns
         -------
-        waveforms : torch.Tensor of shape (n_wavelets, wavelet_length)
+        waveforms : Tensor of shape (n_wavelets, wavelet_length)
             Wavelets in the time domain.
         """
-        t = self.times  # (n_samples,)
-        tw = self.time_widths[:, None]  # (n_cfreqs, 1)
-        cf = self._center_freqs[:, None]  # (n_cfreqs, 1)
+        t = self.times  # (wavelet_length,)
+        tw = self.time_widths[:, None]  # (n_wavelets, 1)
+        cf = self._center_freqs[:, None]  # (n_wavelets, 1)
 
         gaussian = torch.exp(-4.0 * LN2 * torch.square(t / tw))
         oscillation = torch.exp(1j * 2.0 * PI * cf * t)
@@ -244,13 +222,14 @@ class _MorletWaveletBase(nn.Module):
         self,
         data: torch.Tensor | NDArray[np_floating],
         taper: Taper | None = None,
-        coeff_type: Literal["power", "magnitude", "complex"] = "power",
+        coeff_type: CoeffType
+        | Literal["power", "magnitude", "complex"] = CoeffType.POWER,
     ) -> torch.Tensor:
         """Compute the wavelet transform of the input signal(s).
 
         Parameters
         ----------
-        data : torch.Tensor or ndarray of shape (..., signal_length)
+        data : Tensor or ndarray of shape (..., signal_length)
             Input signal(s) to be analysed.
         taper : Taper or None, default=None
             Tapering module to apply to the input signal(s) before computing
@@ -264,7 +243,7 @@ class _MorletWaveletBase(nn.Module):
 
         Returns
         -------
-        coeffs : torch.Tensor of shape (..., n_wavelets, signal_length)
+        coeffs : Tensor of shape (..., n_wavelets, signal_length)
             Wavelet-transformed coefficients of the input signal(s). The shape
             of the output tensor depends on the shape of the input signal(s):
 
@@ -278,38 +257,28 @@ class _MorletWaveletBase(nn.Module):
             number of wavelets, `C` is the number of channels, and `B` is the
             batch size.
         """
-        if coeff_type not in {"power", "magnitude", "complex"}:
-            raise ValueError(
-                f"Coefficient type must be one of ('power', 'magnitude', 'complex'), "
-                f"but got '{coeff_type}'."
-            )
-
-        x_in = torch.as_tensor(data, dtype=self.dtype, device=self.device)
+        coeff_type = CoeffType(coeff_type)
 
         if taper is None:
-            taper = Taper(
-                window_type="hann",
-                n_samples=x_in.shape[-1],
-                max_percentage=0.05,
-                side="both",
-            ).to(device=self.device, dtype=self.dtype)
+            taper = _get_default_taper(data.shape[-1], self.dtype, self.device)
 
-        # Demean + taper
-        x_in = x_in - x_in.mean(dim=-1, keepdim=True)
-        x_in = taper(x_in)
+        x_in = _preprocess_input(data, taper, self.dtype, self.device)
 
         # Cross-correlate + normalise by the scales
-        coeffs = xcorr_via_fft(x_in, self.waveforms) / torch.sqrt(self.scales[:, None])
+        # Detach fixed buffers so that autograd does not track them
+        waveforms = self.waveforms.detach()
+        scales = self.scales.detach()
+        coeffs = xcorr_via_fft(x_in, waveforms) / torch.sqrt(scales[:, None])
 
-        if coeff_type == "power":
-            return torch.square(torch.abs(coeffs))
-        elif coeff_type == "magnitude":
-            return torch.abs(coeffs)
-        else:  # coeff_type == "complex":
+        if coeff_type == CoeffType.POWER:
+            return (coeffs * coeffs.conj()).real
+        elif coeff_type == CoeffType.MAGNITUDE:
+            return coeffs.abs()
+        else:  # "complex"
             return coeffs
 
     @torch.no_grad()
-    def get_freq_resps(
+    def compute_freq_resps(
         self, n_fft: int | None = None, scaled: bool = True
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Return the frequency responses of the wavelets.
@@ -318,7 +287,7 @@ class _MorletWaveletBase(nn.Module):
         ----------
         n_fft : int or None, default=None
             Number of FFT points to use for computing the frequency responses.
-            If None, the next power of two greater than or equal to `n_t`
+            If None, the next power of two greater than or equal to `n_samples`
             will be used.
         scaled : bool, default=True
             Whether to return the scaled responses. If False, the responses
@@ -326,9 +295,9 @@ class _MorletWaveletBase(nn.Module):
 
         Returns
         -------
-        freqs : torch.Tensor of shape (n_freqs,)
+        freqs : Tensor of shape (n_freqs,)
             Frequency points.
-        resps : torch.Tensor of shape (n_wavelets, n_freqs)
+        resps : Tensor of shape (n_wavelets, n_freqs)
             Frequency responses of the wavelets.
         """
         if n_fft is None:
@@ -356,7 +325,79 @@ class _MorletWaveletBase(nn.Module):
     def __repr__(self) -> str:
         """Return a string representation of the wavelet group."""
         return (
-            f"{self.__class__.__name__} with {len(self)} wavelets, "
-            f"sampling rate={self.sampling_rate:.4f}, "
-            f"time duration={self.time_duration:.4f}"
+            f"{self.__class__.__name__}("
+            f"nw={len(self)}, "
+            f"tau={self.time_duration:.4f}, "
+            f"fs={self.sampling_freq:.4f})"
         )
+
+
+def _coerce_validate_center_freqs(
+    center_freqs: Sequence[float] | NDArray[np_floating] | torch.Tensor,
+    sampling_freq: float,
+    dtype: torch.dtype | None = None,
+) -> torch.Tensor:
+    """Coerce and validate a sequence of center frequencies and return a tensor."""  # noqa: W505
+    dtype = dtype or torch.get_default_dtype()
+    center_freqs = torch.as_tensor(center_freqs, dtype=dtype)
+    nyquist = sampling_freq * 0.5
+    if center_freqs.numel() == 0:
+        raise ValueError("Center frequencies must be non-empty.")
+    if center_freqs.ndim != 1:
+        raise ValueError("Center frequencies must be 1-dimensional.")
+    if not torch.all(torch.isfinite(center_freqs)):
+        raise ValueError("Center frequencies must be finite values.")
+    if torch.any(center_freqs <= 0.0) or torch.any(center_freqs >= nyquist):
+        raise ValueError(
+            f"Center frequencies must be in the range (0, {nyquist}) (exclusive)."
+        )
+    return center_freqs
+
+
+def _coerce_validate_shape_ratios(
+    shape_ratios: float | Sequence[float] | NDArray[np_floating] | torch.Tensor,
+    center_freqs: torch.Tensor,
+) -> torch.Tensor:
+    """Coerce and validate a sequence of shape ratios and return a tensor."""
+    shape_ratios = torch.as_tensor(shape_ratios, dtype=center_freqs.dtype)
+    if not torch.all(torch.isfinite(shape_ratios)):
+        raise ValueError("Shape ratios must be finite values.")
+    if torch.any(shape_ratios <= 0.0):
+        raise ValueError("Shape ratios must be positive values.")
+    if shape_ratios.numel() != 1 and shape_ratios.shape != center_freqs.shape:
+        raise ValueError(
+            "Shape ratios must be either a scalar, or an array-like with the "
+            "same length as center frequencies."
+        )
+    return shape_ratios
+
+
+@lru_cache(maxsize=32)
+def _get_default_taper(
+    n_samples: int, dtype: torch.dtype, device: torch.device
+) -> Taper:
+    """Return a cached default Hann taper for the given signal length."""
+    return Taper(
+        window_type="hann",
+        n_samples=n_samples,
+        max_percentage=0.05,
+        side="both",
+    ).to(dtype=dtype, device=device)
+
+
+def _preprocess_input(
+    data: torch.Tensor | NDArray[np_floating],
+    taper: Taper,
+    dtype: torch.dtype,
+    device: torch.device,
+) -> torch.Tensor:
+    """Preprocess input data by coercing to tensor, demeaning, and tapering."""
+    x_in = torch.as_tensor(data, dtype=dtype, device=device)
+
+    # Demean + taper
+    # Note that 'as_tensor' returns a view if dtype/device match. DO NOT
+    # demean x_in in-place unless a clone has been made first.
+    x_in = x_in - x_in.mean(dim=-1, keepdim=True)
+    x_in = taper(x_in)
+
+    return x_in
