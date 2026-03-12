@@ -12,48 +12,15 @@ WindowType: TypeAlias = Literal["bartlett", "blackman", "hann", "hamming", "kais
 
 
 class TaperConfig(BaseModel, frozen=True, extra="forbid"):
-    window_type: WindowType = Field(
-        ...,
-        description="Type of window function to use for the fade region.",
-    )
-    n_samples: int = Field(
-        ...,
-        gt=0,
-        description="Total length of the output window in samples.",
-    )
-    max_percentage: float | None = Field(
-        None,
-        gt=0,
-        le=0.5,
-        description=(
-            "Maximum length of the fade region expressed as a fraction of "
-            "`n_samples`. Must be between 0 (exclusive) and 0.5 (inclusive). "
-            "If None, no percentage-based limiting is applied."
-        ),
-    )
-    max_fade_len: int | None = Field(
-        None,
-        gt=0,
-        description=(
-            "Maximum length of the fade region in samples. If None, no "
-            "fixed-length limiting is applied."
-        ),
-    )
-    side: Literal["left", "right", "both"] = Field(
-        "both",
-        description="Side(s) of the window to apply tapering. Default is 'both'.",
-    )
-    kaiser_beta: float = Field(
-        14.0,
-        description=(
-            "Beta parameter for the Kaiser window. Higher values produce "
-            "narrower transitions with more stopband attenuation. Only relevant "
-            "if `window_type='kaiser'`. Otherwise, this parameter is ignored."
-        ),
-    )
+    window_type: WindowType
+    n_samples: int = Field(..., gt=0)
+    max_percentage: float | None = Field(default=None, gt=0, le=0.5)
+    max_fade_len: int | None = Field(default=None, gt=0)
+    side: Literal["left", "right", "both"] = Field(default="both")
+    kaiser_beta: float = Field(default=14.0)
 
 
-def get_taper_window(
+def build_taper_window(
     window_type: WindowType,
     n_samples: int,
     *,
@@ -86,7 +53,7 @@ def get_taper_window(
 
     Returns
     -------
-    window : torch.Tensor of shape (n_samples,)
+    window : Tensor of shape (n_samples,)
         The tapering window.
 
     Raises
@@ -104,7 +71,7 @@ def get_taper_window(
             kaiser_beta=kaiser_beta,
         )
     except ValidationError as e:
-        raise ValueError(str(e)) from e
+        raise ValueError(f"Invalid tapering configuration: {e}") from e
 
     try:
         window_fn = getattr(torch, f"{cfg.window_type}_window")
@@ -123,7 +90,7 @@ def get_taper_window(
     if fade_len == 0:
         return torch.ones(cfg.n_samples)
 
-    window_kwargs = {"periodic": False}
+    window_kwargs: dict[str, float | bool] = {"periodic": False}
     if cfg.window_type == "kaiser":
         window_kwargs["beta"] = cfg.kaiser_beta
 
@@ -196,7 +163,7 @@ class Taper(nn.Module):
         self.kaiser_beta = kaiser_beta
         self.register_buffer(
             name="weight",
-            tensor=get_taper_window(
+            tensor=build_taper_window(
                 window_type=self.window_type,
                 n_samples=self.n_samples,
                 max_percentage=self.max_percentage,
@@ -218,13 +185,13 @@ class Taper(nn.Module):
 
         Parameters
         ----------
-        x : torch.Tensor of shape (..., n_samples)
+        x : Tensor of shape (..., n_samples)
             Input tensor to be tapered. The last dimension must match the
             length of the tapering window.
 
         Returns
         -------
-        out : torch.Tensor of shape (..., n_samples)
+        out : Tensor of shape (..., n_samples)
             The tapered output, obtained by element-wise multiplication of the
             input with the tapering window.
         """
