@@ -4,12 +4,21 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import torch
+from pydantic import BaseModel, PositiveFloat, ValidationError
 
 from ._wavelet_base import _MorletWaveletBase
 
 if TYPE_CHECKING:
-    import torch
+    from torch import Tensor
+
+
+class MorletWaveletConfig(BaseModel):
+    """Configuration for a Morlet wavelet."""
+
+    center_freq: PositiveFloat
+    shape_ratio: PositiveFloat
+    time_duration: PositiveFloat
+    sampling_freq: PositiveFloat
 
 
 class MorletWavelet(_MorletWaveletBase):
@@ -47,14 +56,22 @@ class MorletWavelet(_MorletWaveletBase):
           | milliseconds | kHz             |
           | microseconds | MHz             |
         """
+        try:
+            cfg = MorletWaveletConfig(
+                center_freq=center_freq,
+                shape_ratio=shape_ratio,
+                time_duration=time_duration,
+                sampling_freq=sampling_freq,
+            )
+        except ValidationError as e:
+            raise ValueError(f"Invalid wavelet configuration: {e}") from e
+
         super().__init__(
-            center_freqs=[center_freq],
-            shape_ratios=[shape_ratio],
-            time_duration=time_duration,
-            sampling_freq=sampling_freq,
+            center_freqs=[cfg.center_freq],
+            shape_ratios=[cfg.shape_ratio],
+            time_duration=cfg.time_duration,
+            sampling_freq=cfg.sampling_freq,
         )
-        self.center_freq = center_freq
-        self.shape_ratio = shape_ratio
 
     @property
     def time_width(self) -> float:
@@ -81,30 +98,19 @@ class MorletWavelet(_MorletWaveletBase):
         return self.freq_widths.item()
 
     @property
-    def waveform(self) -> torch.Tensor:
+    def waveform(self) -> Tensor:
         """Waveform of the wavelet.
 
         Returns
         -------
-        out : torch.Tensor of shape (n_samples,)
+        out : Tensor of shape (n_samples,)
             Waveform of the wavelet.
         """
         return self.waveforms.squeeze(0)
 
-    @property
-    def max_apec_amp(self) -> float:
-        """Maximum amplitude of the wavelet spectrum.
-
-        Returns
-        -------
-        out : float
-            Maximum amplitude of the wavelet spectrum.
-        """
-        return self.max_spec_amps.item()
-
-    def get_freq_resp(
+    def compute_freq_resp(
         self, n_fft: int, normalize: bool = True
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[Tensor, Tensor]:
         """Get the frequency response of the wavelet.
 
         Parameters
@@ -120,10 +126,10 @@ class MorletWavelet(_MorletWaveletBase):
 
         Returns
         -------
-        out : torch.Tensor of shape (n_fft,)
+        out : Tensor of shape (n_fft,)
             Frequency response of the wavelet.
         """
-        freqs, resps = super().get_freq_resps(n_fft=n_fft, scaled=normalize)
+        freqs, resps = super().compute_freq_resps(n_fft=n_fft, scaled=normalize)
         return freqs, resps.squeeze(0)
 
     def __repr__(self) -> str:
