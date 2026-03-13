@@ -69,7 +69,7 @@ def plot_freq_resps(
     Returns
     -------
     out : Axes or PlotlyFigure
-        The same plotting object passed in `plot_obj`.
+        For convenience, the same plotting object passed in is returned.
     """
     backend = backend or _infer_plot_backend(plot_obj)
     cfg = FreqRespPlotConfig(

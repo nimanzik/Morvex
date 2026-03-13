@@ -22,7 +22,30 @@ class MorletWaveletConfig(BaseModel):
 
 
 class MorletWavelet(_MorletWaveletBase):
-    """Complex Morlet wavelet with constant-Q properties."""
+    """Complex Morlet wavelet with constant-Q properties.
+
+    Parameters
+    ----------
+    center_freq : float
+        Center frequency of the wavelet.
+    shape_ratio : float
+        Shape ratio of the wavelet.
+    time_duration : float
+        Time duration of the wavelet.
+    sampling_freq : float
+        Sampling frequency of the wavelet.
+
+    Notes
+    -----
+    - The unit of the `time_duration` and `sampling_freq` must be compatible
+    with each other, since this is not checked internally. For example:
+
+    | `duration`   | `sampling_freq` |
+    |--------------|-----------------|
+    | seconds      | Hz              |
+    | milliseconds | kHz             |
+    | microseconds | MHz             |
+    """
 
     def __init__(
         self,
@@ -31,31 +54,6 @@ class MorletWavelet(_MorletWaveletBase):
         time_duration: float,
         sampling_freq: float,
     ) -> None:
-        """Initialise a Morlet wavelet.
-
-        Parameters
-        ----------
-        center_freq : float
-            Center frequency of the wavelet.
-        shape_ratio : float
-            Shape ratio of the wavelet.
-        time_duration : float
-            Time duration of the wavelet.
-        sampling_freq : float
-            Sampling frequency of the wavelet.
-
-        Notes
-        -----
-        - The unit of the `time_duration` and `sampling_freq` must be
-          compatible with each other, since this is not checked internally.
-          For example:
-
-          | `duration`   | `sampling_freq` |
-          |--------------|-----------------|
-          | seconds      | Hz              |
-          | milliseconds | kHz             |
-          | microseconds | MHz             |
-        """
         try:
             cfg = MorletWaveletConfig(
                 center_freq=center_freq,
