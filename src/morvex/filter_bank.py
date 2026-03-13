@@ -22,7 +22,38 @@ class MorletFilterBankConfig(BaseModel):
 
 
 class MorletFilterBank(_MorletWaveletBase):
-    """Complex Morlet-wavelet filter bank with constant-Q properties."""
+    """Complex Morlet-wavelet filter bank with constant-Q properties.
+
+    Parameters
+    ----------
+    n_octaves : int
+        Number of octaves.
+    resolution : int
+        Number of frequency intervals per octave. The total number of
+        wavelets in the filter bank will be `n_octaves * resolution + 1`.
+    shape_ratio : float
+        Shape ratio of the wavelets.
+    time_duration : float
+        Time duration of the wavelets, common for all wavelets in the filter
+        bank. It should be long enough to capture the oscillations of the
+        lowest center frequency, but not too long to avoid unnecessary
+        computations.
+    sampling_freq : float
+        Sampling frequency of the wavelets, common for all wavelets in the
+        filter bank. It should be the same as the sampling frequency of the
+        signals to be analysed.
+
+    Notes
+    -----
+    - The unit of the `time_duration` and `sampling_freq` must be compatible
+    with each other, since this is not checked internally. For example:
+
+    | `duration`   | `sampling_freq` |
+    |--------------|-----------------|
+    | seconds      | Hz              |
+    | milliseconds | kHz             |
+    | microseconds | MHz             |
+    """
 
     def __init__(
         self,
@@ -32,39 +63,6 @@ class MorletFilterBank(_MorletWaveletBase):
         time_duration: float,
         sampling_freq: float,
     ) -> None:
-        """Initialise the complex Morlet-wavelet filter bank.
-
-        Parameters
-        ----------
-        n_octaves : int
-            Number of octaves.
-        resolution : int
-            Number of frequency intervals per octave. The total number of
-            wavelets in the filter bank will be `n_octaves * resolution + 1`.
-        shape_ratio : float
-            Shape ratio of the wavelets.
-        time_duration : float
-            Time duration of the wavelets, common for all wavelets in the
-            filter bank. It should be long enough to capture the oscillations
-            of the lowest center frequency, but not too long to avoid
-            unnecessary computations.
-        sampling_freq : float
-            Sampling frequency of the wavelets, common for all wavelets in the
-            filter bank. It should be the same as the sampling frequency of the
-            signals to be analysed.
-
-        Notes
-        -----
-        - The unit of the `time_duration` and `sampling_freq` must be
-          compatible with each other, since this is not checked internally.
-          For example:
-
-          | `duration`   | `sampling_freq` |
-          |--------------|-----------------|
-          | seconds      | Hz              |
-          | milliseconds | kHz             |
-          | microseconds | MHz             |
-        """
         try:
             cfg = MorletFilterBankConfig(
                 n_octaves=n_octaves,

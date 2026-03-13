@@ -30,7 +30,40 @@ class CoeffType(StrEnum):
 
 
 class _MorletWaveletBase(nn.Module):
-    """Internal base class for Morlet wavelet containers."""
+    """Internal base class for Morlet wavelet containers.
+
+    Parameters
+    ----------
+    center_freqs : array-like of float
+        Center frequencies of the wavelets.
+    shape_ratios : float or array-like of float
+        Shape ratios of the wavelets. It should be either a single value
+        (common for all wavelets) or an array-like object with the same
+        length as `center_freqs`.
+    time_duration : float
+        Time duration of the wavelets, common for all wavelets in the group
+        It should be long enough to capture the oscillations of the lowest
+        center frequency, but not too long to avoid unnecessary computations.
+    sampling_freq : float
+        Sampling frequency of the wavelets, common for all wavelets in the
+        group. It should be the same as the sampling frequency of the signals
+        to be analysed.
+    dtype : torch.dtype or None, optional
+        Data type of the wavelet parameters. If `None` (default),
+        :func:`torch.get_default_dtype()` is called to determine and use the
+        current default floating-point dtype.
+
+    Notes
+    -----
+    - The unit of the `time_duration` and `sampling_freq` must be compatible
+    with each other, since this is not checked internally. For example:
+
+    | `duration`   | `sampling_freq` |
+    |--------------|-----------------|
+    | seconds      | Hz              |
+    | milliseconds | kHz             |
+    | microseconds | MHz             |
+    """
 
     _center_freqs: torch.Tensor
     _shape_ratios: torch.Tensor
@@ -44,42 +77,6 @@ class _MorletWaveletBase(nn.Module):
         sampling_freq: float,
         dtype: torch.dtype | None = None,
     ) -> None:
-        """Initialise the Morlet wavelet group.
-
-        Parameters
-        ----------
-        center_freqs : array-like of float
-            Center frequencies of the wavelets.
-        shape_ratios : float or array-like of float
-            Shape ratios of the wavelets. It should be either a single value
-            (common for all wavelets) or an array-like object with the same
-            length as `center_freqs`.
-        time_duration : float
-            Time duration of the wavelets, common for all wavelets in the
-            group. It should be long enough to capture the oscillations of
-            the lowest center frequency, but not too long to avoid unnecessary
-            computations.
-        sampling_freq : float
-            Sampling frequency of the wavelets, common for all wavelets in the
-            group. It should be the same as the sampling frequency of the
-            signals to be analysed.
-        dtype : torch.dtype or None, optional
-            Data type of the wavelet parameters. If `None` (default),
-            :func:`torch.get_default_dtype()` is called to determine and use
-            the current default floating-point dtype.
-
-        Notes
-        -----
-        - The unit of the `time_duration` and `sampling_freq` must be
-          compatible with each other, since this is not checked internally.
-          For example:
-
-          | `duration`   | `sampling_freq` |
-          |--------------|-----------------|
-          | seconds      | Hz              |
-          | milliseconds | kHz             |
-          | microseconds | MHz             |
-        """
         super().__init__()
 
         self._time_duration = time_duration

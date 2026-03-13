@@ -153,7 +153,6 @@ class Taper(nn.Module):
         side: Literal["left", "right", "both"] = "both",
         kaiser_beta: float = 14.0,
     ):
-        """Initialise the Taper module."""
         super().__init__()
         self.window_type = window_type
         self.n_samples = n_samples
