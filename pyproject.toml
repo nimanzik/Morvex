@@ -11,12 +11,10 @@ license-files = ['LICENSE']
 requires-python = ">=3.12"
 dependencies = [
     "cmcrameri>=1.9",
-    "cupy-cuda11x>=13.6.0",
     "matplotlib>=3.10.6",
     "numpy>=2.3.3",
     "pydantic>=2.12.5",
     "pyqt5>=5.15.11",
-    "rich>=14.1.0",
     "scipy>=1.16.2",
 ]
 
@@ -39,9 +37,6 @@ dev = [
     "ruff>=0.13.0",
     "ty>=0.0.1a20",
 ]
-
-[tool.ty.rules]
-unresolved-attribute = "ignore"
 
 [tool.uv]
 conflicts = [
@@ -67,5 +62,8 @@ name = "pytorch-cu128"
 url = "https://download.pytorch.org/whl/cu128"
 explicit = true
 
-[tool.basedpyright]
+[tool.ty.rules]
+unresolved-attribute = "ignore"
+
+[tool.pyright]
 typeCheckingMode = "off"
