@@ -7,8 +7,6 @@ import pytest
 import torch
 
 from morvex._wavelet_base import (
-    LN2,
-    PI,
     CoeffType,
     _coerce_validate_center_freqs,
     _coerce_validate_shape_ratios,
@@ -17,6 +15,9 @@ from morvex._wavelet_base import (
     _preprocess_input,
 )
 from morvex.tapering import Taper
+
+PI = math.pi
+LN2 = math.log(2.0)
 
 
 class TestCoerceValidateCenterFreqs:
