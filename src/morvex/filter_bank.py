@@ -86,6 +86,10 @@ class MorletFilterBank(_MorletWaveletBase):
         self.n_octaves = n_octaves
         self.resolution = resolution
 
+    @classmethod
+    def from_config(cls, cfg: MorletFilterBankConfig) -> MorletFilterBank:
+        return cls(**cfg.model_dump())
+
     @property
     def shape_ratio(self) -> float:
         """Shape ratio of the wavelets."""
