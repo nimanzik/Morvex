@@ -1,192 +1,189 @@
 # Morvex
 
-***A lightweight, high-performance Python library for continuous wavelet
-transform (CWT) using Morlet wavelet filter bank, with GPU computing
-support.***
+**A lightweight Python library for continuous wavelet transform (CWT) using complex Morlet wavelets, built on PyTorch with GPU support.**
 
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.9+-ee4c2c.svg)](https://pytorch.org/)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![prek](https://img.shields.io/badge/prek-enabled-F54327?logo=prek&logoColor=white)](https://github.com/j178/prek)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-FAB040?logo=pre-commit&logoColor=white)](https://pre-commit.com/)
 [![CI](https://github.com/nimanzik/Morvex/actions/workflows/ci.yml/badge.svg)](https://github.com/nimanzik/Morvex/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > [!CAUTION]
-> This project is still under active development and may undergo significant
-> changes.
+> This project is under active development and may undergo significant changes.
 
 ## Overview
 
-This Python library provides an implementation of the Morlet wavelet
-transform, a powerful time-frequency analysis method that offers an
-intuitive approach to understanding signal characteristics. The
-implementation is inspired by the pioneering work of [French geophysicist
-Jean Morlet](https://en.wikipedia.org/wiki/Jean_Morlet), leveraging his
-original, highly intuitive formulation which laid the foundation for the
-Continuous Wavelet Transform (CWT).
+This Python library provides an implementation of the Morlet wavelet transform
+for time-frequency analysis. The implementation follows the original,
+physically intuitive formulation by [Jean Morlet](https://en.wikipedia.org/wiki/Jean_Morlet),
+which defines wavelet shape through a **shape ratio** parameter – the Gaussian
+time width as an integer multiple of the wavelet's dominant period. This
+preserves wavelet shape across frequencies and makes the constant-Q property explicit.
 
-Unlike more abstract modern formulations of the CWT, Jean Morlet's method is
-deeply rooted in physical intuition, making it particularly accessible for
-comprehending how signals vary in frequency over time.
+Built entirely on PyTorch, Morvex runs on both CPU and GPU with no code changes
+required.
 
 ## Features
 
-- **Intuitive Implementation**: Directly implements Morlet's original and
-  physically intuitive formulation of the wavelet transform, as detailed in
-  his 1982 papers.
-- **High Performance**: Supports computations on both the CPU and GPU,
-  enabling efficient processing of large datasets and high-frequency signals.
-- **Pythonic Design**: Developed as a user-friendly Python library, making it
-  accessible for researchers and developers.
+- **Morlet wavelet transform** with constant-Q filter bank
+- **GPU acceleration** via PyTorch: move to GPU with a single `.to(device=...`)
+- **Batch processing** — transform multiple signals in one call
+- **Flexible output** — power, magnitude, or complex coefficients
+- **Built-in visualisation** with Matplotlib and Plotly backends
+- **Configurable tapering** to reduce edge artefacts
 
 ## Installation
 
-If you use `uv` as your Python package manager, you can install Morvex using
-the following command:
+With [uv](https://github.com/astral-sh/uv) (recommended):
 
 ```bash
-# Install as a Git dependency source using `uv` (recommended)
-$ uv add git+https://github.com/nimanzik/Morvex
+uv add git+https://github.com/nimanzik/Morvex
 ```
 
-If you prefer to use `pip`, you need to install it from source:
+With pip (from source):
 
 ```bash
-# Install from source using `pip`
-$ git clone https://github.com/nimanzik/Morvex.git
-$ cd Morvex
-$ pip install .
+git clone https://github.com/nimanzik/Morvex.git
+cd Morvex
+pip install .
 ```
 
-## Usage
+### PyTorch with CUDA
 
-To compute the scalogram (the output of the CWT):
+Morvex provides optional extras for installing PyTorch with the appropriate backend:
+
+```bash
+# CPU-only
+uv add git+https://github.com/nimanzik/Morvex --extra torch-cpu
+
+# CUDA 12.8
+uv add git+https://github.com/nimanzik/Morvex --extra torch-cu128
+```
+
+## Quick start
+
+### Single wavelet
 
 ```python
-import numpy as np
+from morvex import MorletWavelet
 
-from morvex import MorletFilterBank
-
-data = ... # some signal data
-fs = ...   # sampling frequency of the signal
-
-filter_bank = MorletFilterBank(
-    n_octaves=8,          # Number of octaves to cover
-    n_intervals=4,        # Number of intervals (filters) per octave
-    shape_ratio=5,        # Shape ratio of the Morlet wavelet
-    duration=2.0,         # Duration of the Morlet wavelet
-    sampling_freq=fs,     # Sampling frequency of the signal
-    array_engine="cupy",  # Choices: "numpy" or "cupy"
+wavelet = MorletWavelet(
+    center_freq=5.0,      # Center frequency
+    shape_ratio=5.0,      # Shape ratio (kappa)
+    time_duration=2.0,    # Duration in seconds
+    sampling_freq=100.0,  # Sampling frequency in Hz
 )
 
-mode = "magnitude"        # Choices: "magnitude", "power", "complex"
-scalogram = filter_bank.transform(data, mode=mode, detach_from_device=True)
+print(wavelet.time_width)   # Gaussian time width
+print(wavelet.freq_width)   # Frequency bandwidth
+print(wavelet.waveform)     # Complex-valued waveform tensor
 ```
 
-### Switching between CPU and GPU
-
-Switching between CPU and GPU computation is as simple as changing the
-`array_engine` parameter to either `"numpy"` or `"cupy"`.
-
-- For CPU computation (and storing the results as NumPy arrays):
-
-    ```python
-    filter_bank = MorletFilterBank(..., array_engine="numpy")
-    ```
-
-- For GPU computation (and storing the results as CuPy arrays):
-
-    ```python
-    filter_bank = MorletFilterBank(..., array_engine="cupy")
-    ```
-
-### Use CuPy for computation but get results as NumPy array
-
-When using GPU for computation, the results will be returned as so-called
-"device arrays". To move the results to the host (CPU) memory, use the
-`detach_from_device` parameter:
-
-```python
-filter_bank = MorletFilterBank(..., array_engine="cupy")
-scalogram_as_numpy = filter_bank.transform(..., detach_from_device=True)
-```
-
-By default, the `detach_from_device` parameter is set to `False`, meaning
-the results will be stored as device arrays when using GPU for computation
-(note that it has no effect on CPU computation).
-
-### Use CuPy for computation and get results as PyTorch Tensor
-
-Both PyTorch and CuPy support `__cuda_array_interface__`, so zero-copy data
-exchange between CuPy and PyTorch can be achieved at no cost.
-
-The only requirement is that the tensor must be already on GPU before
-exchanging data. Therefore, make sure that `detach_from_device=False`
-(which is the default behaviour) when doing the transformation.
-
-PyTorch supports zero-copy data exchange through `DLPack`, so you can get
-the results as a PyTorch tensor as follows:
+### Filter bank and CWT
 
 ```python
 import torch
+from morvex import MorletFilterBank
 
-filter_bank = MorletFilterBank(..., array_engine="cupy")
-scalogram_as_cupy = filter_bank.transform(..., detach_from_device=False)
-scalogram_as_torch = torch.from_dlpack(scalogram_as_cupy)
+# Build a constant-Q filter bank
+fb = MorletFilterBank(
+    n_octaves=4,          # Number of octaves
+    resolution=8,         # Filters per octave
+    shape_ratio=5.0,      # Shape ratio (kappa)
+    time_duration=2.0,    # Duration in seconds
+    sampling_freq=1000.0, # Sampling frequency in Hz
+)
+
+# Compute the wavelet transform
+signal = torch.randn(8000)                    # 8 seconds of signal
+coeffs = fb(signal, coeff_type="power")       # Scalogram (power)
+# coeffs shape: (n_wavelets, 8000)
+```
+
+### Batch processing
+
+The forward pass supports arbitrary leading dimensions:
+
+```python
+batch = torch.randn(16, 3, 8000)             # (batch, channels, time)
+coeffs = fb(batch, coeff_type="magnitude")    # (16, 3, n_wavelets, 8000)
+```
+
+### GPU acceleration
+
+Since Morvex is a standard `torch.nn.Module`, moving to GPU is straightforward:
+
+```python
+fb = fb.cuda()
+signal = signal.cuda()
+coeffs = fb(signal, coeff_type="power")       # Computed on GPU
 ```
 
 ### Visualisation
 
-There are quick-and-ready methods to visualise both the filter bank and the
-computed scalogram.
-
-- To visualise the scalogram:
+Plot the frequency responses of the filter bank:
 
 ```python
 import matplotlib.pyplot as plt
+from morvex.plotting import plot_freq_resps
 
-fig_sgram, ax_sgram = plt.subplots()
-filter_bank.plot_scalogram(ax=ax_sgram, scalogram=scalogram)
+fig, ax = plt.subplots()
+plot_freq_resps(fb, ax)
+plt.show()
 ```
 
-- To visualise the frequency responses of the filter bank:
+Plot a scalogram (time-frequency plane):
 
 ```python
-fig_fbank, ax_fbank = plt.subplots()
-filter_bank.plot_responses(ax=ax_fbank, n_fft=512)
+import numpy as np
+from morvex.plotting import plot_time_freq_plane
+
+freqs = fb.center_freqs.numpy()
+times = np.arange(coeffs.shape[-1]) / fb.sampling_freq
+scalogram = coeffs.numpy()
+
+fig, ax = plt.subplots()
+plot_time_freq_plane(ax, freqs, times, scalogram, label="power", log_scale=True)
+plt.show()
 ```
 
-Here is an example of the computed scalogram for a signal with a sampling
-frequency of 16 kHz:
+## API reference
 
-| Example Signal | Morlet Filter Bank | Computed scalogram |
-| --- | --- | --- |
-| ![Example Signal](docs/assets/images/01_example_signal.png) | ![Morlet Filter Bank](docs/assets/images/02_filter_bank.png) | ![Computed scalogram](docs/assets/images/03_scalogram.png) |
+### `MorletWavelet`
 
-## Shape Ratio ($\kappa$)
+A single complex Morlet wavelet defined by its center frequency, shape ratio, time duration, and sampling frequency.
 
-A significant innovation introduced by Morlet is the **shape ratio**, $\kappa$.
-This parameter defines the Gaussian time width at half-amplitude as an integer
-multiple of the wavelet's dominant period ($\Delta t = \kappa T_0$). This
-allows for the preservation of the wavelet's shape as its dominant period
-changes, providing a consistent analysis across frequencies.
+| Parameter | Type | Description |
+|---|---|---|
+| `center_freq` | `float` | Center frequency of the wavelet |
+| `shape_ratio` | `float` | Shape ratio (kappa) — controls the time-frequency trade-off |
+| `time_duration` | `float` | Time duration of the wavelet |
+| `sampling_freq` | `float` | Sampling frequency |
+
+### `MorletFilterBank`
+
+A constant-Q filter bank of complex Morlet wavelets, spaced logarithmically across octaves.
+
+| Parameter | Type | Description |
+|---|---|---|
+| `n_octaves` | `int` | Number of octaves to cover |
+| `resolution` | `int` | Number of wavelets per octave |
+| `shape_ratio` | `float` | Shape ratio (kappa) — common for all wavelets |
+| `time_duration` | `float` | Time duration, common for all wavelets |
+| `sampling_freq` | `float` | Sampling frequency |
+
+**Forward pass**: `fb(data, taper=None, coeff_type="power")` returns wavelet coefficients.
+
+| `coeff_type` | Output |
+|---|---|
+| `"power"` | Squared magnitude (real-valued) |
+| `"magnitude"` | Absolute magnitude (real-valued) |
+| `"complex"` | Complex-valued coefficients |
 
 > [!NOTE]
-> This section will be expanded and detailed in the future.
-
-## Examples
-
-[This example](https://nimanzik.github.io/Morvex/assets/htmls/basic_example.html)
-shows how to use `Morvex` to compute the wavelet transform of an acoustic
-Fin-Whale signal. The [marimo notebook](examples/marimo_notebooks/basic_example.py)
-for this example is also available for interactive exploration.
+> The units of `time_duration` and `sampling_freq` must be compatible (e.g., seconds and Hz, milliseconds and kHz).
 
 ## Troubleshooting
 
-Report any issues or bugs on [GitHub Issues](https://github.com/nimanzik/Morvex/issues).
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](./LICENSE)
-file for details.
+Report issues or bugs on [GitHub Issues](https://github.com/nimanzik/Morvex/issues).
