@@ -1,6 +1,6 @@
 # Morvex
 
-**A lightweight Python library for continuous wavelet transform (CWT) using complex Morlet wavelets, built on PyTorch with GPU support.**
+**Continuous Wavelet Transform (CWT) using Morlet wavelets filter bank, built on PyTorch with GPU support.**
 
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.9+-ee4c2c.svg)](https://pytorch.org/)
@@ -27,58 +27,43 @@ required.
 ## Features
 
 - **Morlet wavelet transform** with constant-Q filter bank
-- **GPU acceleration** via PyTorch: move to GPU with a single `.to(device=...`)
-- **Batch processing** — transform multiple signals in one call
-- **Flexible output** — power, magnitude, or complex coefficients
-- **Built-in visualisation** with Matplotlib and Plotly backends
-- **Configurable tapering** to reduce edge artefacts
+- **GPU acceleration** via PyTorch: move to GPU with a single `.to(device=...)`
+- **Batch processing**: transform multiple signals in one call
 
 ## Installation
 
-With [uv](https://github.com/astral-sh/uv) (recommended):
+### Pfrerequisite
+
+Install [uv](https://github.com/astral-sh/uv) Python packagfe manager.
+
+### Minimal dependencies: without PyTorch
+
+If PyTorch is already installed in your virtual environment:
 
 ```bash
 uv add git+https://github.com/nimanzik/Morvex
 ```
 
-With pip (from source):
-
-```bash
-git clone https://github.com/nimanzik/Morvex.git
-cd Morvex
-pip install .
-```
-
-### PyTorch with CUDA
+### Full dependencies: PyTorch with CUDA or CPU only
 
 Morvex provides optional extras for installing PyTorch with the appropriate backend:
 
-```bash
-# CPU-only
-uv add git+https://github.com/nimanzik/Morvex --extra torch-cpu
+- CUDA 12.8
 
-# CUDA 12.8
+```bash
 uv add git+https://github.com/nimanzik/Morvex --extra torch-cu128
+```
+
+- CPU-only
+
+```bash
+uv add git+https://github.com/nimanzik/Morvex --extra torch-cpu
 ```
 
 ## Quick start
 
-### Single wavelet
-
-```python
-from morvex import MorletWavelet
-
-wavelet = MorletWavelet(
-    center_freq=5.0,      # Center frequency
-    shape_ratio=5.0,      # Shape ratio (kappa)
-    time_duration=2.0,    # Duration in seconds
-    sampling_freq=100.0,  # Sampling frequency in Hz
-)
-
-print(wavelet.time_width)   # Gaussian time width
-print(wavelet.freq_width)   # Frequency bandwidth
-print(wavelet.waveform)     # Complex-valued waveform tensor
-```
+> [!NOTE]
+> The units of `time_duration` and `sampling_freq` must be compatible (e.g., seconds and Hz, milliseconds and kHz etc).
 
 ### Filter bank and CWT
 
@@ -147,42 +132,6 @@ fig, ax = plt.subplots()
 plot_time_freq_plane(ax, freqs, times, scalogram, label="power", log_scale=True)
 plt.show()
 ```
-
-## API reference
-
-### `MorletWavelet`
-
-A single complex Morlet wavelet defined by its center frequency, shape ratio, time duration, and sampling frequency.
-
-| Parameter | Type | Description |
-|---|---|---|
-| `center_freq` | `float` | Center frequency of the wavelet |
-| `shape_ratio` | `float` | Shape ratio (kappa) — controls the time-frequency trade-off |
-| `time_duration` | `float` | Time duration of the wavelet |
-| `sampling_freq` | `float` | Sampling frequency |
-
-### `MorletFilterBank`
-
-A constant-Q filter bank of complex Morlet wavelets, spaced logarithmically across octaves.
-
-| Parameter | Type | Description |
-|---|---|---|
-| `n_octaves` | `int` | Number of octaves to cover |
-| `resolution` | `int` | Number of wavelets per octave |
-| `shape_ratio` | `float` | Shape ratio (kappa) — common for all wavelets |
-| `time_duration` | `float` | Time duration, common for all wavelets |
-| `sampling_freq` | `float` | Sampling frequency |
-
-**Forward pass**: `fb(data, taper=None, coeff_type="power")` returns wavelet coefficients.
-
-| `coeff_type` | Output |
-|---|---|
-| `"power"` | Squared magnitude (real-valued) |
-| `"magnitude"` | Absolute magnitude (real-valued) |
-| `"complex"` | Complex-valued coefficients |
-
-> [!NOTE]
-> The units of `time_duration` and `sampling_freq` must be compatible (e.g., seconds and Hz, milliseconds and kHz).
 
 ## Troubleshooting
 
