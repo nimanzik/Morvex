@@ -20,7 +20,9 @@ dependencies = [
 
 [project.optional-dependencies]
 torch-cpu = ["torch>=2.9.0"]
+torch-cu126 = ["torch>=2.9.0"]
 torch-cu128 = ["torch>=2.9.0"]
+torch-cu130 = ["torch>=2.9.0"]
 plotly = ["plotly>=6.5.2"]
 
 [build-system]
@@ -31,7 +33,6 @@ build-backend = "uv_build"
 dev = [
     "ipython>=9.5.0",
     "marimo>=0.15.5",
-    "pre-commit>=4.3.0",
     "prek>=0.3.3",
     "pytest>=8.4.2",
     "ruff>=0.13.0",
@@ -42,19 +43,27 @@ dev = [
 conflicts = [
   [
     { extra = "torch-cpu" },
+    { extra = "torch-cu126" },
     { extra = "torch-cu128" },
+    { extra = "torch-cu130" },
   ],
 ]
 
 [tool.uv.sources]
 torch = [
-  { extra = "torch-cpu", index = "pytorch-cpu" },
-  { extra = "torch-cu128", index = "pytorch-cu128" },
+  { index = "pytorch-cpu", extra = "torch-cpu" },
+  { index = "pytorch-cu126", extra = "torch-cu126" },
+  { index = "pytorch-cu128", extra = "torch-cu128" },
 ]
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
 explicit = true
 
 [[tool.uv.index]]
