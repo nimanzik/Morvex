@@ -26,12 +26,6 @@ frequencies and makes the constant-Q property explicit.
 Built entirely on PyTorch, Morvex runs on both GPU and CPU with no code changes
 required.
 
-## Features
-
-- **Morlet wavelet transform** with constant-Q filter bank.
-- **GPU acceleration** via PyTorch: move to GPU with a single `.to(device=...)`.
-- **Batch processing**: transform multiple signals in one call.
-
 ## Installation
 
 ### Pfrerequisite
