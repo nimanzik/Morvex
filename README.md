@@ -75,7 +75,9 @@ uv add git+https://github.com/nimanzik/Morvex --extra torch-cu130
 
 > [!NOTE]
 > The units of `time_duration` and `sampling_freq` must be compatible
-> (e.g., seconds and Hz, milliseconds and kHz etc).
+> (e.g., seconds and Hz, milliseconds and kHz etc). Morvex does not enforce unit
+> consistency in the input parameters, and it is assumed that users will provide
+> compatible values.
 
 ### Filter bank and CWT
 
