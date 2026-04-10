@@ -55,6 +55,17 @@ repos:
   #       args: [--ignore-missing-imports]
   #       exclude: ^(tests/|examples/)
 
+  # Ty type checking
+  - repo: local
+    hooks:
+      - id: ty-check
+        name: ty type check
+        entry: uv run --extra plotly ty check src/
+        language: system
+        pass_filenames: false
+        types:
+          - python
+
 # Global configuration
 default_language_version:
   python: python3.12
