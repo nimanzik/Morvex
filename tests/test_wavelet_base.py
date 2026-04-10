@@ -7,7 +7,7 @@ import pytest
 import torch
 
 from morvex._wavelet_base import (
-    CoeffType,
+    CoeffTypeEnum,
     _coerce_validate_center_freqs,
     _coerce_validate_shape_ratios,
     _get_default_taper,
@@ -190,7 +190,7 @@ class TestMorletWaveletBase:
         )
         data = torch.randn(256)
 
-        coeffs_complex = wavelets(data, coeff_type=CoeffType.COMPLEX)
+        coeffs_complex = wavelets(data, coeff_type=CoeffTypeEnum.COMPLEX)
         coeffs_magnitude = wavelets(data, coeff_type="magnitude")
         coeffs_power = wavelets(data, coeff_type="power")
 
@@ -264,7 +264,7 @@ class TestMorletWaveletBase:
         n_channels, signal_len = 3, 256
         data = torch.randn(n_channels, signal_len)
 
-        coeffs = wavelets(data, coeff_type=CoeffType.COMPLEX)
+        coeffs = wavelets(data, coeff_type=CoeffTypeEnum.COMPLEX)
 
         assert coeffs.shape == (n_channels, 2, signal_len)
         assert torch.is_complex(coeffs)

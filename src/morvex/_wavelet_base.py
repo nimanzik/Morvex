@@ -23,10 +23,13 @@ LN2 = math.log(2.0)
 PI = math.pi
 
 
-class CoeffType(StrEnum):
+class CoeffTypeEnum(StrEnum):
     POWER = "power"
     MAGNITUDE = "magnitude"
     COMPLEX = "complex"
+
+
+type CoeffTypeLiteral = Literal["power", "magnitude", "complex"]
 
 
 class _MorletWaveletBase(nn.Module):
@@ -219,8 +222,7 @@ class _MorletWaveletBase(nn.Module):
         self,
         data: torch.Tensor | NDArray[np_floating],
         taper: Taper | None = None,
-        coeff_type: CoeffType
-        | Literal["power", "magnitude", "complex"] = CoeffType.POWER,
+        coeff_type: CoeffTypeEnum | CoeffTypeLiteral = CoeffTypeEnum.POWER,
     ) -> torch.Tensor:
         """Compute the wavelet transform of the input signal(s).
 
@@ -254,7 +256,7 @@ class _MorletWaveletBase(nn.Module):
             number of wavelets, `C` is the number of channels, and `B` is the
             batch size.
         """
-        coeff_type = CoeffType(coeff_type)
+        coeff_type = CoeffTypeEnum(coeff_type)
 
         if taper is None:
             taper = _get_default_taper(data.shape[-1], self.dtype, self.device)
@@ -267,9 +269,9 @@ class _MorletWaveletBase(nn.Module):
         scales = self.scales.detach()
         coeffs = xcorr_via_fft(x_in, waveforms) / torch.sqrt(scales[:, None])
 
-        if coeff_type == CoeffType.POWER:
+        if coeff_type == CoeffTypeEnum.POWER:
             return (coeffs * coeffs.conj()).real
-        elif coeff_type == CoeffType.MAGNITUDE:
+        elif coeff_type == CoeffTypeEnum.MAGNITUDE:
             return coeffs.abs()
         else:  # "complex"
             return coeffs
