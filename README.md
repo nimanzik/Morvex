@@ -11,7 +11,7 @@
 [![CI](https://github.com/nimanzik/Morvex/actions/workflows/ci.yml/badge.svg)](https://github.com/nimanzik/Morvex/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> [!CAUTION]
+> [!NOTE]
 > This project is under active development and may undergo significant changes.
 
 ## Overview
@@ -73,7 +73,7 @@ uv add git+https://github.com/nimanzik/Morvex --extra torch-cu130
 
 ## Quick start
 
-> [!NOTE]
+> [!IMPORTANT]
 > The units of `time_duration` and `sampling_freq` must be compatible
 > (e.g., seconds and Hz, milliseconds and kHz etc). Morvex does not enforce unit
 > consistency in the input parameters, and it is assumed that users will provide
