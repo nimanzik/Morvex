@@ -7,6 +7,7 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.9+-ee4c2c.svg)](https://pytorch.org/)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![prek](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/j178/prek/master/docs/assets/badge-v0.json)](https://github.com/j178/prek)
 [![CI](https://github.com/nimanzik/Morvex/actions/workflows/ci.yml/badge.svg)](https://github.com/nimanzik/Morvex/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -17,11 +18,12 @@
 
 This Python library provides an implementation of the Morlet wavelet transform
 for time-frequency analysis. The implementation follows the original,
-physically intuitive formulation by [Jean Morlet](https://en.wikipedia.org/wiki/Jean_Morlet),
-French geophysicist and pioneer of wavelet theory, which defines wavelet shape
-through a **shape ratio** parameter $\kappa$ – the Gaussian time width as an integer
-multiple of the wavelet's dominant period. This preserves wavelet shape across
-frequencies and makes the constant-Q property explicit.
+physically intuitive formulation by [Jean Morlet](https://en.wikipedia.org/wiki/Jean_Morlet)
+(French geophysicist and pioneer of wavelet theory), which defines wavelet shape
+through a parameter called **shape ratio**, $\kappa$. This parameter determines
+the Gaussian time width at half-maximum expressed as a multiple of the wavelet's
+dominant period. This approach ensures that the wavelet's shape is preserved
+across frequencies and makes the constant-Q property explicit.
 
 Built entirely on PyTorch, Morvex runs on both GPU and CPU with no code changes
 required.
@@ -34,7 +36,7 @@ Install [uv](https://github.com/astral-sh/uv) Python packagfe manager.
 
 ### Core installation (without PyTorch)
 
-If you already have PyTorch installed, and need only the core functionality of
+If you already have PyTorch installed and need only the core functionality of
 Morvex, run the following command:
 
 ```bash
@@ -44,30 +46,29 @@ uv add git+https://github.com/nimanzik/Morvex
 ### Full installation (with PyTorch)
 
 Morvex provides optional extras for different PyTorch configurations (CUDA
-versions and CPU-only). Install the appropriate extra based on your setup:
+versions and CPU-only). Install the appropriate extra based on your setup using:
 
-- CPU-only
+```bash
+uv add git+https://github.com/nimanzik/Morvex --extra <BACKEND_NAME>
+```
+
+where *`<BACKEND_NAME>`* should be replaced with one of the following:
+
+- `torch-cpu`: for CPU-only PyTorch
+- `torch-cu130`: for PyTorch with CUDA 13.0 enabled
+- `torch-cu128`: for PyTorch with CUDA 12.8 enabled
+- `torch-cu126`: for PyTorch with CUDA 12.6 enabled
+
+For example, to install with CPU-only PyTorch:
 
 ```bash
 uv add git+https://github.com/nimanzik/Morvex --extra torch-cpu
 ```
 
-- CUDA 13.0
+and to install with CUDA 13.0 enabled PyTorch:
 
 ```bash
 uv add git+https://github.com/nimanzik/Morvex --extra torch-cu130
-```
-
-- CUDA 12.8
-
-```bash
-uv add git+https://github.com/nimanzik/Morvex --extra torch-cu128
-```
-
-- CUDA 12.6
-
-```bash
-uv add git+https://github.com/nimanzik/Morvex --extra torch-cu126
 ```
 
 ## Quick start
@@ -94,7 +95,10 @@ fbank = MorletFilterBank(
 
 # Compute the wavelet transform (scalogram) of an 8-second signal
 signal = torch.randn(8000)
-scalogram = fbank(signal, coeff_type="power")  # shape: (n_wavelets, 8000) 
+scalogram = fbank(signal, coeff_type="power")
+
+scalogram.shape
+# torch.Size([n_wavelets, 8000])
 ```
 
 ### Batch processing
@@ -105,10 +109,10 @@ seconds each):
 
 ```python
 signals = torch.randn(16, 3, 8000)
-scalogram = fbank(
-    signals,
-    coeff_type="magnitude",
-)  # shape: (16, 3, n_wavelets, 8000)
+scalogram = fbank(signals, coeff_type="magnitude")
+
+scalogram.shape
+# torch.Size([16, 3, n_wavelets, 8000])
 ```
 
 ### GPU acceleration
