@@ -9,10 +9,12 @@ import numpy as np
 import torch
 from scipy.fft import next_fast_len
 
+__all__ = ["xcorr_via_fft"]
+
 
 @lru_cache(maxsize=256)
 def _next_fast_len(n: int, real: bool) -> int:
-    """Cache results of next_fast_len for performance and thread safety.
+    """Cache results of `next_fast_len` for performance.
 
     See `scipy.fft.next_fast_len` for more details.
 
@@ -44,6 +46,18 @@ def _get_centered(x: torch.Tensor, new_shape: tuple[int, ...]) -> torch.Tensor:
     x_out : Tensor
         Centered tensor with the new shape.
     """
+    if len(new_shape) != x.ndim:
+        raise ValueError(
+            f"`new_shape` must have the same number of dimensions as `x`, but "
+            f"got {len(new_shape)} and {x.ndim}",
+        )
+
+    if any(s > x.shape[k] for k, s in enumerate(new_shape)):
+        raise ValueError(
+            f"Each dimension in `new_shape` must be less than or equal to the "
+            f"corresponding dimension in `x`, but got {new_shape} and {x.shape}",
+        )
+
     output_shape = np.asarray(new_shape)
     current_shape = np.asarray(x.shape)
     start_idx = (current_shape - output_shape) // 2
@@ -75,6 +89,24 @@ def xcorr_via_fft(data: torch.Tensor, waveforms: torch.Tensor) -> torch.Tensor:
             f"(n_waveforms, waveform_length), but got shape {waveforms.shape}",
         )
 
+    if data.ndim < 1:
+        raise ValueError(
+            f"`data` must be at least 1D tensor of shape (..., signal_length), "
+            f"but got shape {data.shape}",
+        )
+
+    if data.device != waveforms.device:
+        raise ValueError(
+            f"`data` and `waveforms` must be on the same device, but got "
+            f"{data.device} and {waveforms.device}",
+        )
+
+    if data.real.dtype != waveforms.real.dtype:
+        raise ValueError(
+            f"dtype precision mismatch between `data` and `waveforms`: "
+            f"got {data.real.dtype} and {waveforms.real.dtype}"
+        )
+
     is_complex = data.is_complex() or waveforms.is_complex()
 
     # xcorr -> conv(mode='full')
@@ -82,17 +114,16 @@ def xcorr_via_fft(data: torch.Tensor, waveforms: torch.Tensor) -> torch.Tensor:
     n_fft = _next_fast_len(n_conv, real=not is_complex)
 
     if is_complex:
-        fft_, ifft_ = torch.fft.fft, torch.fft.ifft
+        _fft, _ifft = torch.fft.fft, torch.fft.ifft
     else:
-        fft_, ifft_ = torch.fft.rfft, torch.fft.irfft
+        _fft, _ifft = torch.fft.rfft, torch.fft.irfft
 
-    filter_spectra = torch.conj(fft_(waveforms, n=n_fft))
+    filter_spectra = _fft(waveforms.flip(dims=(-1,)).conj(), n=n_fft)
 
     # FFT(data) and add dimension for wavelets: (..., n_fft) -> (..., 1, n_fft)
-    data_spectra = fft_(data, n=n_fft).unsqueeze(-2)
+    data_spectra = _fft(data, n=n_fft).unsqueeze(-2)
 
-    # For iFFT, 'n' controls the output length, not the transform length.
-    coeffs = ifft_(filter_spectra * data_spectra, n=n_fft)[..., :n_conv]
+    coeffs = _ifft(filter_spectra * data_spectra, n=n_fft)[..., :n_conv]
 
     # Center with respect to the mode-'full' convolution
     final_shape = coeffs.shape[:-1] + (data.shape[-1],)
