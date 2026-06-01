@@ -209,10 +209,5 @@ def _(filt_bank, plot_freq_resps, plt, signal):
     return
 
 
-@app.cell
-def _():
-    return
-
-
 if __name__ == "__main__":
     app.run()
