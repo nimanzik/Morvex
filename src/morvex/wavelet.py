@@ -107,7 +107,7 @@ class MorletWavelet(_MorletWaveletBase):
         return self.waveforms.squeeze(0)
 
     def compute_freq_resp(
-        self, n_fft: int, normalize: bool = True
+        self, n_fft: int, scaled: bool = False
     ) -> tuple[Tensor, Tensor]:
         """Get the frequency response of the wavelet.
 
@@ -117,17 +117,19 @@ class MorletWavelet(_MorletWaveletBase):
             Number of FFT points to compute the frequency response. It should
             be at least as large as the length of the wavelet waveform, but
             can be larger to get a smoother frequency response.
-        normalize : bool, optional
-            Whether to normalize the frequency response by the maximum
-            amplitude of the wavelet spectrum. If `True`, the maximum
-            amplitude will be 1. Default is `True`.
+        scaled : bool, default=False
+            If True, the frequency response will be scaled (i.e.,
+            non-normalised) by multiplying it with the maximum amplitude of the
+            Fourier spectrum of the wavelet. This can be useful for
+            visualisation purposes only, but may not be desirable for other
+            applications.
 
         Returns
         -------
         out : Tensor of shape (n_fft,)
             Frequency response of the wavelet.
         """
-        freqs, resps = super().compute_freq_resps(n_fft=n_fft, scaled=normalize)
+        freqs, resps = super().compute_freq_resps(n_fft=n_fft, scaled=scaled)
         return freqs, resps.squeeze(0)
 
     def __repr__(self) -> str:

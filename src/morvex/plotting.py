@@ -53,8 +53,11 @@ def plot_freq_resps(
         If None, the next power of two greater than or equal to `n_t`
         will be used.
     scaled : bool, default=False
-        Whether to plot the scaled responses. If False, the responses
-        are normalised to one.
+        If True, the frequency responses will be scaled (i.e.,
+        non-normalised) by multiplying them with the maximum amplitude of the
+        Fourier spectra of the wavelets. This can be useful for
+        visualisation purposes only, but may not be desirable for other
+        applications.
     color : str or None, default=None
         Line color for all responses.
     auto_xlabel : bool, default=True

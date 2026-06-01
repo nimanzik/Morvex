@@ -278,7 +278,7 @@ class _MorletWaveletBase(nn.Module):
 
     @torch.no_grad()
     def compute_freq_resps(
-        self, n_fft: int | None = None, scaled: bool = True
+        self, n_fft: int | None = None, scaled: bool = False, **kwargs
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Return the frequency responses of the wavelets.
 
@@ -288,9 +288,12 @@ class _MorletWaveletBase(nn.Module):
             Number of FFT points to use for computing the frequency responses.
             If None, the next power of two greater than or equal to `n_samples`
             will be used.
-        scaled : bool, default=True
-            Whether to return the scaled responses. If False, the responses
-            are normalised to one.
+        scaled : bool, default=False
+            If True, the frequency responses will be scaled (i.e.,
+            non-normalised) by multiplying them with the maximum amplitude of
+            the Fourier spectra of the wavelets. This can be useful for
+            visualisation purposes only, but may not be desirable for other
+            applications.
 
         Returns
         -------
