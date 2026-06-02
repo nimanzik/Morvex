@@ -125,9 +125,9 @@ def _(mo):
 def _(MorletFilterBank, signal):
     filt_bank = MorletFilterBank(
         n_octaves=2,
-        resolution=12,
+        resolution=8,
         shape_ratio=5.0,
-        time_duration=1.0,
+        time_duration=1.5,
         sampling_freq=signal.fs,
     )
 
@@ -183,14 +183,11 @@ def _(filt_bank, plot_freq_resps, plt, signal):
     fig_resps, ax_resps = plt.subplots(figsize=(10, 6))
     plot_freq_resps(filt_bank, ax_resps, n_fft=512, color="#3465a4")
 
-    # Mark min. and max. frequencies of the filterbank
-    # max. frequency (Nyquist frequency)
+    # --- Mark lower frequency passband and the Nyquist ---
     f_nyq = signal.fs / 2
-    # min. frequency
-    f_min = f_nyq / (2 ** filt_bank.n_octaves)
-    print(f"Nyquist frequency: {f_nyq} Hz | Minimum frequency: {f_min} Hz")
+    f_low = f_nyq / (2 ** filt_bank.n_octaves)
 
-    for f in (f_min, f_nyq):
+    for f in (f_low, f_nyq):
         ax_resps.axvline(f, color="#cc0000", linestyle="--", linewidth=1.5)
         ax_resps.text(
             f - 0.5,
@@ -201,7 +198,7 @@ def _(filt_bank, plot_freq_resps, plt, signal):
             ha="right",
             va="top",
             transform=ax_resps.axes.get_xaxis_transform(),
-            bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="#cc0000", lw=1.5),
+            bbox=dict(boxstyle="round", fc="white", ec="#cc0000", alpha=0.75),
         )
 
     # mo.mpl.interactive(fig_resps)
