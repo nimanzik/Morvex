@@ -72,6 +72,29 @@ class MorletWavelet(_MorletWaveletBase):
         )
 
     @property
+    def center_freq(self) -> float:
+        """Center frequency of the wavelet.
+
+        Returns
+        -------
+        out : float
+            Center frequency of the wavelet. It is in the same unit as the
+            `sampling_freq` parameter.
+        """
+        return self.center_freqs.item()
+
+    @property
+    def shape_ratio(self) -> float:
+        """Shape ratio of the wavelet.
+
+        Returns
+        -------
+        out : float
+            Shape ratio of the wavelet.
+        """
+        return self.shape_ratios.item()
+
+    @property
     def time_width(self) -> float:
         """Time width of the wavelet.
 
