@@ -22,7 +22,7 @@ def _():
     from morvex import MorletFilterBank
     from morvex.plotting import plot_freq_resps, plot_time_freq_plane
 
-    plt.style.use("bmh")
+    plt.style.use("seaborn-v0_8-darkgrid")
     return (
         MorletFilterBank,
         Path,
@@ -97,13 +97,15 @@ def _(Path, Signal, np):
 
 @app.cell
 def _(plt, signal):
-    fig_sig, ax_sig = plt.subplots(figsize=(10, 6))
-    ax_sig.plot(signal.times, signal.values, linewidth=1)
+    fig_sig, ax_sig = plt.subplots(figsize=(14, 6))
+    ax_sig.plot(signal.times, signal.values, linewidth=0.7)
     ax_sig.set(
         xlabel="Time [s]",
         ylabel="Acoustic Amplitude",
         title="Fin-Whale song recording | Bandpass filtered 12–30 Hz",
     )
+    ax_sig.margins(x=0.01)
+
     # mo.mpl.interactive(fig_sig)
     plt.gca()
     return
@@ -114,9 +116,9 @@ def _(mo):
     mo.md(r"""
     ## Apply the CWT
 
-    ### Compute scalogram
+    ### Create a filterbank
 
-    Now, we are ready to apply the CWT to our signal using the Morlet filter bank. We specify that we want to compute the magnitude of the coefficients, which will give us a scalogram that represents the time-frequency representation of the signal.
+    First, we need to create a filter bank with the desired parameters. After creation, we can call its `summary()` method to print out the filter bank information.
     """)
     return
 
@@ -130,11 +132,11 @@ def _(MorletFilterBank, signal):
         time_duration=1.5,
         sampling_freq=signal.fs,
     )
+    filt_bank.summary()
 
     coeff_type = "magnitude"
     scalogram = filt_bank(signal.values, coeff_type=coeff_type).detach().cpu().numpy()
 
-    print(filt_bank)
     print(f"Scalogram array shape: {scalogram.shape}")
     return coeff_type, filt_bank, scalogram
 
@@ -161,6 +163,7 @@ def _(coeff_type, filt_bank, plot_time_freq_plane, plt, scalogram, signal):
     )
 
     ax_sgram.grid(False)
+
     # mo.mpl.interactive(fig_sgram)
     plt.gca()
     return
@@ -190,7 +193,7 @@ def _(filt_bank, plot_freq_resps, plt, signal):
     for f in (f_low, f_nyq):
         ax_resps.axvline(f, color="#cc0000", linestyle="--", linewidth=1.5)
         ax_resps.text(
-            f - 0.5,
+            f - 0.7,
             0.975,
             f"{f:.1f} Hz",
             color="#cc0000",
