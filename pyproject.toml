@@ -15,6 +15,7 @@ dependencies = [
     "numpy>=2.3.3",
     "pydantic>=2.12.5",
     "pyqt5>=5.15.11",
+    "rich>=15.0.0",
     "scipy>=1.16.2",
 ]
 

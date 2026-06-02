@@ -163,3 +163,21 @@ class MorletWavelet(_MorletWaveletBase):
             f"tau={self.time_duration}, "
             f"fs={self.sampling_freq:.6f})"
         )
+
+    def summary(self) -> None:
+        """Summarise the wavelet configuration in a rich table."""
+        from rich import box
+        from rich.console import Console
+        from rich.table import Table
+
+        table = Table(box=box.ROUNDED, show_header=True)
+        table.title = f"{self.__class__.__name__} Summary"
+        table.add_column("Parameter")
+        table.add_column("Value")
+        table.add_row("Center freq.", f"{self.center_freq}")
+        table.add_row("Shape ratio (κ)", f"{self.shape_ratio}")
+        table.add_row("Time duration (τ)", f"{self.time_duration}")
+        table.add_row("Sampling freq.", f"{self.sampling_freq}")
+
+        console = Console()
+        console.print(table)

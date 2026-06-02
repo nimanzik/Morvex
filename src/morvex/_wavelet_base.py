@@ -328,7 +328,7 @@ class _MorletWaveletBase(nn.Module):
         """Return a string representation of the wavelet group."""
         return (
             f"{self.__class__.__name__}("
-            f"nw={len(self)}, "
+            f"n_wave={len(self)}, "
             f"tau={self.time_duration:.4f}, "
             f"fs={self.sampling_freq:.4f})"
         )

@@ -106,10 +106,32 @@ class MorletFilterBank(_MorletWaveletBase):
             f"J={self.n_octaves}, "
             f"Q={self.resolution}, "
             f"kappa={self.shape_ratio}, "
-            f"nw={len(self)}, "
             f"tau={self.time_duration:.4f}, "
-            f"fs={self.sampling_freq:.4f})"
+            f"fs={self.sampling_freq:.4f}), "
+            f"n_filt={len(self)}"
         )
+
+    def summary(self) -> None:
+        """Summarise the filterbank configuration in a rich table."""
+        from rich import box
+        from rich.console import Console
+        from rich.table import Table
+
+        table = Table(box=box.ROUNDED, show_header=True)
+        table.title = f"{self.__class__.__name__} Summary"
+        table.add_column("Parameter")
+        table.add_column("Value")
+        table.add_row("Octaves (J)", str(self.n_octaves))
+        table.add_row("Resolution (Q)", str(self.resolution))
+        table.add_row("Shape ratio (κ)", f"{self.shape_ratio}")
+        table.add_row("Time duration (τ)", f"{self.time_duration}")
+        table.add_row("Sampling freq.", f"{self.sampling_freq}")
+        table.add_row("Num. filters", str(len(self)))
+        table.add_row("Data type", str(self.dtype))
+        table.add_row("Device", str(self.device))
+
+        console = Console()
+        console.print(table)
 
 
 def _compute_morlet_center_freqs(
