@@ -222,7 +222,7 @@ class _MorletWaveletBase(nn.Module):
         self,
         data: torch.Tensor | NDArray[np_floating],
         taper: Taper | None = None,
-        coeff_type: CoeffTypeEnum | CoeffTypeLiteral = CoeffTypeEnum.POWER,
+        coeff_type: CoeffTypeEnum | CoeffTypeLiteral = CoeffTypeEnum.COMPLEX,
     ) -> torch.Tensor:
         """Compute the wavelet transform of the input signal(s).
 
@@ -234,11 +234,11 @@ class _MorletWaveletBase(nn.Module):
             Tapering module to apply to the input signal(s) before computing
             the wavelet transform. If None, a default Hann taper with a
             maximum fade length of 5% of the signal length will be applied.
-        coeff_type : {'power', 'magnitude', 'complex'}, default='power'
+        coeff_type : {'complex', 'magnitude', 'power'}, default='complex'
             The type of the wavelet-transform coefficients to return:
-                - `'power'`: squared magnitude of the coefficients.
-                - `'magnitude'`: absolute magnitude of the coefficients.
                 - `'complex'`: complex-valued coefficients.
+                - `'magnitude'`: absolute magnitude of the coefficients.
+                - `'power'`: squared magnitude of the coefficients.
 
         Returns
         -------
@@ -339,7 +339,7 @@ def _coerce_validate_center_freqs(
     sampling_freq: float,
     dtype: torch.dtype | None = None,
 ) -> torch.Tensor:
-    """Coerce and validate a sequence of center frequencies and return a tensor."""  # noqa: W505
+    """Coerce and validate a sequence of center frequencies and return as a tensor."""  # noqa: W505
     dtype = dtype or torch.get_default_dtype()
     center_freqs = torch.as_tensor(center_freqs, dtype=dtype)
     nyquist = sampling_freq * 0.5
@@ -360,7 +360,7 @@ def _coerce_validate_shape_ratios(
     shape_ratios: float | Sequence[float] | NDArray[np_floating] | torch.Tensor,
     center_freqs: torch.Tensor,
 ) -> torch.Tensor:
-    """Coerce and validate a sequence of shape ratios and return a tensor."""
+    """Coerce and validate a sequence of shape ratios and return as a tensor."""  # noqa: W505
     shape_ratios = torch.as_tensor(shape_ratios, dtype=center_freqs.dtype)
     if not torch.all(torch.isfinite(shape_ratios)):
         raise ValueError("Shape ratios must be finite values.")
@@ -380,10 +380,7 @@ def _get_default_taper(
 ) -> Taper:
     """Return a cached default Hann taper for the given signal length."""
     return Taper(
-        window_type="hann",
-        n_samples=n_samples,
-        max_percentage=0.05,
-        side="both",
+        window_type="hann", n_samples=n_samples, max_percentage=0.05, side="both"
     ).to(dtype=dtype, device=device)
 
 
