@@ -1,7 +1,7 @@
 # Morvex
 
-***Continuous Wavelet Transform (CWT) using Morlet wavelets filter bank,***
-***built on PyTorch with GPU support.***
+***Fast constant-Q Morlet filter banks in PyTorch: scalable***
+***time-frequency analysis on CPU and GPU***
 
 [![Python 3.12+](https://img.shields.io/badge/Python-3.13+-blue.svg?style=flat&logo=python&logoColor=skyblue)](https://python.org/)
 [![pytorch](https://img.shields.io/badge/PyTorch-2.9+-EE4C2C?style=flat&logo=pytorch&logoColor=EE4C2C)](https://pytorch.org/)
