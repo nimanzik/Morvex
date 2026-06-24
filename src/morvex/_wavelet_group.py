@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from enum import StrEnum
 from functools import lru_cache
-from typing import TYPE_CHECKING, Final, Literal, Sequence
+from typing import TYPE_CHECKING, Final, Literal, Sequence, final
 
 import torch
 import torch.nn as nn
@@ -199,6 +199,7 @@ class _MorletWaveletGroup(nn.Module):
         """Scales of the wavelets."""
         return (self.omega0s * self._sampling_freq) / (2.0 * PI * self._center_freqs)
 
+    @final
     def _compute_waveforms(self) -> torch.Tensor:
         """Compute the values of the wavelets (waveforms) in the time domain.
 
@@ -218,6 +219,7 @@ class _MorletWaveletGroup(nn.Module):
 
         return gaussian * oscillation
 
+    @final
     def forward(
         self,
         data: torch.Tensor | NDArray[np_floating],
