@@ -99,10 +99,19 @@ class TestXcorrViaFft:
         The function computes ifft(conj(FFT(w)) * FFT(d)), which is the
         circular cross-correlation, then centers the result to 'same' length.
         """
-        data = torch.tensor([1.0, 0.0, -1.0, 0.0, 1.0])
-        waveform = torch.tensor([[1.0, -1.0, 1.0]])
+        import numpy as np
+        from scipy.signal import correlate as sp_correlate
+
+        data = torch.tensor([1.0, 0.0, -1.0, 0.0, 1.0, 0.0, -3.0, 0.0, 1.0])
+        waveform = torch.tensor([[1.0, -1.0, 1.0, -2.0]])
         result = xcorr_via_fft(data, waveform)
 
-        # Full result: [0, 1, 0, -1, 1, 0, 1], centered 5: [1, 0, -1, 1, 0]
-        expected = torch.tensor([[1.0, 0.0, -1.0, 1.0, 0.0]])
-        assert torch.allclose(result, expected, atol=1e-5)
+        expected_np = torch.tensor(
+            np.correlate(data.numpy(), waveform.numpy()[0], mode="same")
+        )
+        expected_sp = torch.tensor(
+            sp_correlate(data.numpy(), waveform.numpy()[0], mode="same", method="fft")
+        )
+
+        assert torch.allclose(result, expected_np, atol=1e-5)
+        assert torch.allclose(result, expected_sp, atol=1e-5)
