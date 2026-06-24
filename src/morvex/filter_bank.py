@@ -7,7 +7,7 @@ import math
 import torch
 from pydantic import BaseModel, PositiveFloat, PositiveInt, ValidationError
 
-from ._wavelet_base import _MorletWaveletBase
+from ._wavelet_group import _MorletWaveletGroup
 
 LN2 = math.log(2.0)
 PI = math.pi
@@ -21,7 +21,7 @@ class MorletFilterBankConfig(BaseModel):
     sampling_freq: PositiveFloat
 
 
-class MorletFilterBank(_MorletWaveletBase):
+class MorletFilterBank(_MorletWaveletGroup):
     """Complex Morlet-wavelet filter bank with constant-Q properties.
 
     Parameters

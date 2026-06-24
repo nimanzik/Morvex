@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, PositiveFloat, ValidationError
 
-from ._wavelet_base import _MorletWaveletBase
+from ._wavelet_group import _MorletWaveletGroup
 
 if TYPE_CHECKING:
     from torch import Tensor
@@ -21,7 +21,7 @@ class MorletWaveletConfig(BaseModel):
     sampling_freq: PositiveFloat
 
 
-class MorletWavelet(_MorletWaveletBase):
+class MorletWavelet(_MorletWaveletGroup):
     """Complex Morlet wavelet with constant-Q properties.
 
     Parameters

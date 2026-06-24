@@ -1,11 +1,11 @@
-"""Base module for Morlet wavelet containers."""
+"""Group module for Morlet wavelet containers."""
 
 from __future__ import annotations
 
 import math
 from enum import StrEnum
 from functools import lru_cache
-from typing import TYPE_CHECKING, Literal, Sequence
+from typing import TYPE_CHECKING, Final, Literal, Sequence
 
 import torch
 import torch.nn as nn
@@ -19,8 +19,8 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
 
-LN2 = math.log(2.0)
-PI = math.pi
+LN2: Final = math.log(2.0)
+PI: Final = math.pi
 
 
 class CoeffTypeEnum(StrEnum):
@@ -32,8 +32,8 @@ class CoeffTypeEnum(StrEnum):
 type CoeffTypeLiteral = Literal["power", "magnitude", "complex"]
 
 
-class _MorletWaveletBase(nn.Module):
-    """Internal base class for Morlet wavelet containers.
+class _MorletWaveletGroup(nn.Module):
+    """Internal group class for Morlet wavelet containers.
 
     Parameters
     ----------
@@ -236,9 +236,10 @@ class _MorletWaveletBase(nn.Module):
             maximum fade length of 5% of the signal length will be applied.
         coeff_type : {'complex', 'magnitude', 'power'}, default='complex'
             The type of the wavelet-transform coefficients to return:
-                - `'complex'`: complex-valued coefficients.
-                - `'magnitude'`: absolute magnitude of the coefficients.
-                - `'power'`: squared magnitude of the coefficients.
+
+            - `'complex'`: complex-valued coefficients (default),
+            - `'magnitude'`: absolute magnitude of the coefficients,
+            - `'power'`: squared magnitude of the coefficients.
 
         Returns
         -------
@@ -393,9 +394,9 @@ def _preprocess_input(
     """Preprocess input data by coercing to tensor, demeaning, and tapering."""
     x_in = torch.as_tensor(data, dtype=dtype, device=device)
 
-    # Demean + taper
-    # Note that 'as_tensor' returns a view if dtype/device match. DO NOT
-    # demean x_in in-place unless a clone has been made first.
+    # Demean first, then taper
+    # IMPORTANT: 'torch.as_tensor' returns a *view* if dtype/device match.
+    # Do NOT demean `x_in` in-place unless a clone has been made first.
     x_in = x_in - x_in.mean(dim=-1, keepdim=True)
     x_in = taper(x_in)
 
