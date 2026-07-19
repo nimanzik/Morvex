@@ -3,7 +3,7 @@
 ***Fast constant-Q Morlet filter banks in PyTorch: scalable***
 ***time-frequency analysis on CPU and GPU***
 
-[![Python 3.12+](https://img.shields.io/badge/Python-3.13+-blue.svg?style=flat&logo=python&logoColor=skyblue)](https://python.org/)
+[![Python 3.13+](https://img.shields.io/badge/Python-3.13+-306998.svg?style=flat&logo=python&logoColor=FFD43B)](https://python.org/)
 [![pytorch](https://img.shields.io/badge/PyTorch-2.9+-EE4C2C?style=flat&logo=pytorch&logoColor=EE4C2C)](https://pytorch.org/)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
