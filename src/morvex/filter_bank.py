@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import math
+from typing import Final
 
 import torch
 from pydantic import BaseModel, PositiveFloat, PositiveInt, ValidationError
 
 from ._wavelet_group import _MorletWaveletGroup
 
-LN2 = math.log(2.0)
-PI = math.pi
+LN2: Final = math.log(2.0)
+PI: Final = math.pi
 
 
 class MorletFilterBankConfig(BaseModel):
