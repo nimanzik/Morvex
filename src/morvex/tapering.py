@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Literal, TypeAlias
+from typing import Literal
 
 import torch
 import torch.nn as nn
 from pydantic import BaseModel, Field, ValidationError
 
-WindowType: TypeAlias = Literal["bartlett", "blackman", "hann", "hamming", "kaiser"]
+from .types import WindowType
 
 
 class TaperConfig(BaseModel, frozen=True, extra="forbid"):

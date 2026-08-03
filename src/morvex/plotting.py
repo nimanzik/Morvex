@@ -2,20 +2,19 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, TypeAlias, TypeGuard
+from typing import TYPE_CHECKING, Any, TypeGuard
 
 import numpy as np
 from cmcrameri import cm
 from pydantic.dataclasses import dataclass
+
+from .types import PlotBackend
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes as MplAxes
     from matplotlib.colors import Colormap
     from numpy.typing import NDArray
     from plotly.graph_objects import Figure as PlotlyFigure
-
-
-PlotBackend: TypeAlias = Literal["matplotlib", "plotly"]
 
 
 @dataclass
