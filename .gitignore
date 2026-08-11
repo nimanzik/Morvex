@@ -12,4 +12,6 @@ wheels/
 # VS Code local settings
 .vscode
 
-_chats
+_attic/
+_chats/
+.specs/

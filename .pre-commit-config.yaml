@@ -55,6 +55,15 @@ repos:
   #       args: [--ignore-missing-imports]
   #       exclude: ^(tests/|examples/)
 
+  # Ty type checking
+  - repo: https://github.com/astral-sh/ty-pre-commit
+    rev: v0.0.70
+    hooks:
+      - id: ty
+        types:
+          - python
+        exclude: ^(tests/|examples/)
+
 # Global configuration
 default_language_version:
   python: python3.12
