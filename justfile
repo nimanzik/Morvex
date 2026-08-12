@@ -30,6 +30,9 @@ test python_version=default_python_version:
     @uv run {{ uv_test_options }} --python "{{ python_version }}" \
         pytest -m "not legacy_tf" -rs {{ pytest_options }} tests/
 
+# Run the checks used by CI.
+ci: lint-check format-check typecheck test
+
 build-check python_version="3.13":
     @rm -rf dist/
     uv build --python "{{ python_version }}"

@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  UV_VERSION: "0.9"
+  UV_VERSION: "0.12.2"
 
 jobs:
   bots_guard:
@@ -32,14 +32,10 @@ jobs:
           python-version-file: ".python-version"
 
       - name: Run ruff linter
-        run: |
-          echo "Running ruff linter..."
-          uvx ruff check src/
+        run: uv run --frozen --no-dev --group quality ruff check
 
       - name: Run ruff formatter
-        run: |
-          echo "Running ruff formatter..."
-          uvx ruff format --check src/
+        run: uv run --frozen --no-dev --group quality ruff format --check
 
   type-check:
     needs: bots_guard
@@ -59,13 +55,10 @@ jobs:
         with:
           python-version-file: ".python-version"
 
-      - name: Install dependencies
-        run: uv sync --frozen --dev --extra plotly --extra torch-cpu
-
       - name: Run type checker
-        run: |
-          echo "Running ty type checker..."
-          uv run ty check src/
+        run: >-
+          uv run --frozen --no-dev --group quality --group test
+          --extra torch-cpu ty check
 
   test:
     needs: bots_guard
@@ -85,10 +78,7 @@ jobs:
         with:
           python-version-file: ".python-version"
 
-      - name: Install dependencies
-        run: uv sync --frozen --dev --extra torch-cpu
-
       - name: Run tests
-        run: |
-          echo "Running tests using pytest..."
-          uv run pytest -v --tb=short tests/
+        run: >-
+          uv run --frozen --no-dev --group test --extra torch-cpu
+          pytest -m "not legacy_tf" -rs -v --tb=short tests/
