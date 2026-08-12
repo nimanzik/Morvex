@@ -1,10 +1,10 @@
 # Morvex
 
-***Fast constant-Q Morlet filter banks in PyTorch: scalable***
-***time-frequency analysis on CPU and GPU***
+**_Fast constant-Q Morlet filter banks in PyTorch: scalable_**
+**_time-frequency analysis on CPU and GPU_**
 
-[![Python 3.13+](https://img.shields.io/badge/Python-3.13+-306998.svg?style=flat&logo=python&logoColor=FFD43B)](https://python.org/)
-[![pytorch](https://img.shields.io/badge/PyTorch-2.9+-EE4C2C?style=flat&logo=pytorch&logoColor=EE4C2C)](https://pytorch.org/)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12+-306998.svg?style=flat&logo=python&logoColor=FFD43B)](https://python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.12.1+-EE4C2C?style=flat&logo=pytorch&logoColor=EE4C2C)](https://pytorch.org/)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://github.com/astral-sh/ty)
@@ -31,9 +31,9 @@ required.
 
 ## Installation
 
-### Pfrerequisite
+### Prerequisite
 
-Install [uv](https://github.com/astral-sh/uv) Python packagfe manager.
+Install the [uv](https://github.com/astral-sh/uv) Python package manager.
 
 ### Core installation (without PyTorch)
 
@@ -44,21 +44,26 @@ Morvex, run the following command:
 uv add git+https://github.com/nimanzik/Morvex
 ```
 
-### Full installation (with PyTorch)
+### Full installation with PyTorch
 
 Morvex provides optional extras for different PyTorch configurations (CUDA
-versions and CPU-only). Install the appropriate extra based on your setup using:
+versions and CPU-only). If you do not already have PyTorch installed, choose
+the build that matches your hardware and CUDA version, and pass the corresponding
+name from the table below to uv's `--extra` option.
 
-```bash
-uv add git+https://github.com/nimanzik/Morvex --extra <BACKEND_NAME>
+| Extra name    | PyTorch build |
+| ------------- | ------------- |
+| `torch-cpu`   | CPU           |
+| `torch-cu126` | CUDA 12.6     |
+| `torch-cu130` | CUDA 13.0     |
+| `torch-cu132` | CUDA 13.2     |
+
+Replace `<extra-name>` with an extra name from the table:
+
+```console
+uv add git+https://github.com/nimanzik/Morvex \
+    --extra <extra-name>
 ```
-
-where *`<BACKEND_NAME>`* should be replaced with one of the following:
-
-- `torch-cpu`: for CPU-only PyTorch
-- `torch-cu130`: for PyTorch with CUDA 13.0 enabled
-- `torch-cu128`: for PyTorch with CUDA 12.8 enabled
-- `torch-cu126`: for PyTorch with CUDA 12.6 enabled
 
 For example, to install with CPU-only PyTorch:
 
