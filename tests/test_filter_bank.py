@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from typing import Any
 
 import pytest
 import torch
@@ -19,7 +20,7 @@ LN2 = math.log(2.0)
 
 
 @pytest.fixture()
-def default_config() -> dict:
+def default_config() -> dict[str, Any]:
     return dict(
         n_octaves=4,
         resolution=8,
@@ -30,7 +31,7 @@ def default_config() -> dict:
 
 
 @pytest.fixture()
-def filter_bank(default_config: dict) -> MorletFilterBank:
+def filter_bank(default_config: dict[str, Any]) -> MorletFilterBank:
     return MorletFilterBank(**default_config)
 
 
@@ -84,7 +85,7 @@ class TestComputeMorletCenterFreqs:
 
 
 class TestMorletFilterBankConfig:
-    def test_valid_config(self, default_config: dict) -> None:
+    def test_valid_config(self, default_config: dict[str, Any]) -> None:
         cfg = MorletFilterBankConfig(**default_config)
         assert cfg.n_octaves == 4
         assert cfg.resolution == 8
@@ -101,7 +102,7 @@ class TestMorletFilterBankConfig:
         ],
     )
     def test_rejects_invalid_values(
-        self, default_config: dict, field: str, invalid_value: object
+        self, default_config: dict[str, Any], field: str, invalid_value: object
     ) -> None:
         default_config[field] = invalid_value
         with pytest.raises(ValidationError):
@@ -114,7 +115,7 @@ class TestMorletFilterBankInit:
         assert filter_bank.resolution == 8
         assert len(filter_bank) > 0
 
-    def test_from_config(self, default_config: dict) -> None:
+    def test_from_config(self, default_config: dict[str, Any]) -> None:
         cfg = MorletFilterBankConfig(**default_config)
         fb = MorletFilterBank.from_config(cfg)
         assert fb.n_octaves == cfg.n_octaves
@@ -131,7 +132,7 @@ class TestMorletFilterBankInit:
         ],
     )
     def test_rejects_invalid_params(
-        self, default_config: dict, field: str, invalid_value: object
+        self, default_config: dict[str, Any], field: str, invalid_value: object
     ) -> None:
         default_config[field] = invalid_value
         with pytest.raises(ValueError, match="Invalid filter bank configuration"):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from typing import Any
 
 import numpy as np
 import pytest
@@ -23,9 +24,7 @@ LN2 = math.log(2.0)
 class TestCoerceValidateCenterFreqs:
     def test_accepts_valid_input(self) -> None:
         center_freqs = _coerce_validate_center_freqs(
-            center_freqs=[5.0, 12.5],
-            sampling_freq=100.0,
-            dtype=torch.float64,
+            center_freqs=[5.0, 12.5], sampling_freq=100.0, dtype=torch.float64
         )
 
         assert center_freqs.dtype == torch.float64
@@ -46,7 +45,9 @@ class TestCoerceValidateCenterFreqs:
             ([50.0], "range"),
         ],
     )
-    def test_rejects_invalid_values(self, center_freqs: list, message: str) -> None:
+    def test_rejects_invalid_values(
+        self, center_freqs: list[Any], message: str
+    ) -> None:
         with pytest.raises(ValueError, match=message):
             _coerce_validate_center_freqs(
                 center_freqs=center_freqs, sampling_freq=100.0
@@ -84,7 +85,9 @@ class TestCoerceValidateShapeRatios:
             ([1.0, 2.0, 3.0], "same length"),
         ],
     )
-    def test_rejects_invalid_values(self, shape_ratios: list, message: str) -> None:
+    def test_rejects_invalid_values(
+        self, shape_ratios: list[Any], message: str
+    ) -> None:
         center_freqs = torch.tensor([5.0, 10.0])
 
         with pytest.raises(ValueError, match=message):

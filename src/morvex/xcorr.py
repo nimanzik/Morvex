@@ -49,13 +49,13 @@ def _get_centered(x: torch.Tensor, new_shape: tuple[int, ...]) -> torch.Tensor:
     if len(new_shape) != x.ndim:
         raise ValueError(
             f"`new_shape` must have the same number of dimensions as `x`, but "
-            f"got {len(new_shape)} and {x.ndim}",
+            f"got {len(new_shape)} and {x.ndim}"
         )
 
     if any(s > x.shape[k] for k, s in enumerate(new_shape)):
         raise ValueError(
             f"Each dimension in `new_shape` must be less than or equal to the "
-            f"corresponding dimension in `x`, but got {new_shape} and {x.shape}",
+            f"corresponding dimension in `x`, but got {new_shape} and {x.shape}"
         )
 
     output_shape = np.asarray(new_shape)
@@ -86,19 +86,19 @@ def xcorr_via_fft(data: torch.Tensor, waveforms: torch.Tensor) -> torch.Tensor:
     if waveforms.ndim != 2:
         raise ValueError(
             f"`waveforms` must be a 2D tensor of shape "
-            f"(n_waveforms, waveform_length), but got shape {waveforms.shape}",
+            f"(n_waveforms, waveform_length), but got shape {waveforms.shape}"
         )
 
     if data.ndim < 1:
         raise ValueError(
             f"`data` must be at least 1D tensor of shape (..., signal_length), "
-            f"but got shape {data.shape}",
+            f"but got shape {data.shape}"
         )
 
     if data.device != waveforms.device:
         raise ValueError(
             f"`data` and `waveforms` must be on the same device, but got "
-            f"{data.device} and {waveforms.device}",
+            f"{data.device} and {waveforms.device}"
         )
 
     if data.real.dtype != waveforms.real.dtype:

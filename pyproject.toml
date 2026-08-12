@@ -5,14 +5,18 @@ description = ""
 authors = [
     { name = "Nima Nooshiri", email = "nima.nooshiri@gmail.com" }
 ]
+maintainers = [
+    { name = "Nima Nooshiri", email = "nima.nooshiri@gmail.com" }
+]
 readme = "README.md"
 license = 'MIT'
 license-files = ['LICENSE']
 requires-python = ">=3.12"
 dependencies = [
-    "cmcrameri>=1.9",
-    "matplotlib>=3.10.6",
+    "cmcrameri>=1.10",
+    "matplotlib>=3.11.1",
     "numpy>=2.3.3",
+    "plotly>=6.9.0",
     "pydantic>=2.12.5",
     "pyqt5>=5.15.11",
     "rich>=15.0.0",
@@ -20,41 +24,47 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-torch-cpu = ["torch>=2.9.0"]
-torch-cu126 = ["torch>=2.9.0"]
-torch-cu128 = ["torch>=2.9.0"]
-torch-cu130 = ["torch>=2.9.0"]
-plotly = ["plotly>=6.5.2"]
+torch-cpu = ["torch>=2.12.1"]
+torch-cu126 = ["torch>=2.12.1"]
+torch-cu130 = ["torch>=2.12.1"]
+torch-cu132 = ["torch>=2.12.1"]
 
 [build-system]
-requires = ["uv_build>=0.8.5,<0.12.0"]
+requires = ["uv_build>=0.12.1,<0.13.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
     "ipython>=9.5.0",
     "marimo>=0.15.5",
-    "prek>=0.3.3",
-    "pytest>=8.4.2",
-    "ruff>=0.13.0",
-    "ty>=0.0.1a20",
+]
+quality = [
+    "prek>=0.4.12",
+    "ruff>=0.16.1",
+    "ty>=0.0.66",
+]
+test = [
+    "pytest>=9.1.1",
 ]
 
 [tool.uv]
+exclude-newer = "7 days"
+default-groups = []
 conflicts = [
   [
     { extra = "torch-cpu" },
     { extra = "torch-cu126" },
-    { extra = "torch-cu128" },
     { extra = "torch-cu130" },
+    { extra = "torch-cu132" },
   ],
 ]
 
 [tool.uv.sources]
 torch = [
-  { index = "pytorch-cpu", extra = "torch-cpu" },
-  { index = "pytorch-cu126", extra = "torch-cu126" },
-  { index = "pytorch-cu128", extra = "torch-cu128" },
+    { index = "pytorch-cpu", extra = "torch-cpu" },
+    { index = "pytorch-cu126", extra = "torch-cu126" },
+    { index = "pytorch-cu130", extra = "torch-cu130" },
+    { index = "pytorch-cu132", extra = "torch-cu132" },
 ]
 
 [[tool.uv.index]]
@@ -68,8 +78,13 @@ url = "https://download.pytorch.org/whl/cu126"
 explicit = true
 
 [[tool.uv.index]]
-name = "pytorch-cu128"
-url = "https://download.pytorch.org/whl/cu128"
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu132"
+url = "https://download.pytorch.org/whl/cu132"
 explicit = true
 
 [tool.pyright]

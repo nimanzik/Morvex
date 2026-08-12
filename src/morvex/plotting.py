@@ -239,13 +239,7 @@ def plot_time_freq_plane(
     else:
         # Use `pcolormesh` for small data
         pc = ax.pcolormesh(
-            times,
-            freqs,
-            xgram,
-            cmap=cmap,
-            shading="gouraud",
-            vmin=v_min,
-            vmax=v_max,
+            times, freqs, xgram, cmap=cmap, shading="gouraud", vmin=v_min, vmax=v_max
         )
         cbar = ax.figure.colorbar(mappable=pc, ax=ax)
     if auto_xlabel:
