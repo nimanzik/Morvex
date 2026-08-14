@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from typing import get_args
+from typing import Literal, get_args
 
 import pytest
 import torch
 from pydantic import ValidationError
 
-from morvex.tapering import Taper, TaperConfig, WindowType, build_taper_window
+from morvex.tapering import Taper, TaperConfig
+from morvex.types import WindowType
 
 
 @pytest.fixture
@@ -18,7 +19,8 @@ def n_samples() -> int:
 
 @pytest.fixture
 def default_window(n_samples: int) -> torch.Tensor:
-    return build_taper_window("hann", n_samples)
+    cfg = TaperConfig(window_type="hann", n_samples=n_samples)
+    return cfg.build_window()
 
 
 class TestTaperConfig:
@@ -49,65 +51,63 @@ class TestTaperConfig:
             cfg.n_samples = 200  # ty: ignore[invalid-assignment]
 
 
-class TestBuildTaperWindow:
+class TestTaperConfigBuildWindow:
     def test_output_shape(self, n_samples: int) -> None:
-        w = build_taper_window("hann", n_samples)
+        w = TaperConfig(window_type="hann", n_samples=n_samples).build_window()
         assert w.shape == (n_samples,)
 
     def test_center_is_ones_both(self, n_samples: int) -> None:
-        w = build_taper_window("hann", n_samples, max_fade_len=10)
-        # Center region should be all ones
+        cfg = TaperConfig(window_type="hann", n_samples=n_samples, max_fade_len=10)
+        w = cfg.build_window()
         assert torch.allclose(w[10:90], torch.ones(80))
 
     def test_edges_start_at_zero_both(self, n_samples: int) -> None:
-        w = build_taper_window("hann", n_samples, max_fade_len=10)
+        cfg = TaperConfig(window_type="hann", n_samples=n_samples, max_fade_len=10)
+        w = cfg.build_window()
         assert w[0].item() == pytest.approx(0.0, abs=1e-6)
         assert w[-1].item() == pytest.approx(0.0, abs=1e-6)
 
-    def test_side_left(self, n_samples: int) -> None:
-        w = build_taper_window("hann", n_samples, max_fade_len=10, side="left")
-        assert w[0].item() == pytest.approx(0.0, abs=1e-6)
-        # Right side should be all ones
-        assert torch.allclose(w[10:], torch.ones(90))
-
-    def test_side_right(self, n_samples: int) -> None:
-        w = build_taper_window("hann", n_samples, max_fade_len=10, side="right")
-        assert w[-1].item() == pytest.approx(0.0, abs=1e-6)
-        # Left side should be all ones
-        assert torch.allclose(w[:90], torch.ones(90))
+    @pytest.mark.parametrize("side", ["left", "right"])
+    def test_single_side(self, side: Literal["left", "right"], n_samples: int) -> None:
+        cfg = TaperConfig(
+            window_type="hann", n_samples=n_samples, max_fade_len=10, side=side
+        )
+        w = cfg.build_window()
+        edge = w[0] if side == "left" else w[-1]
+        untapered = w[10:] if side == "left" else w[:90]
+        assert edge.item() == pytest.approx(0.0, abs=1e-6)
+        assert torch.allclose(untapered, torch.ones(90))
 
     def test_max_percentage_limits_fade(self) -> None:
-        # 10% of 100 = 10 samples fade
-        w = build_taper_window("hann", 100, max_percentage=0.1)
-        assert torch.allclose(w[10:90], torch.ones(80))
+        cfg = TaperConfig(window_type="hann", n_samples=100, max_percentage=0.1)
+        assert torch.allclose(cfg.build_window()[10:90], torch.ones(80))
 
     def test_max_fade_len_limits_fade(self) -> None:
-        w = build_taper_window("hann", 100, max_fade_len=5)
-        assert torch.allclose(w[5:95], torch.ones(90))
+        cfg = TaperConfig(window_type="hann", n_samples=100, max_fade_len=5)
+        assert torch.allclose(cfg.build_window()[5:95], torch.ones(90))
 
-    def test_both_constraints_uses_minimum(self) -> None:
-        # max_percentage=0.1 -> 10, max_fade_len=5 -> min is 5
-        w = build_taper_window("hann", 100, max_percentage=0.1, max_fade_len=5)
-        assert torch.allclose(w[5:95], torch.ones(90))
+    def test_both_constraints_use_minimum(self) -> None:
+        cfg = TaperConfig(
+            window_type="hann", n_samples=100, max_percentage=0.1, max_fade_len=5
+        )
+        assert torch.allclose(cfg.build_window()[5:95], torch.ones(90))
 
     @pytest.mark.parametrize("window_type", get_args(WindowType.__value__))
     def test_all_window_types(self, window_type: WindowType, n_samples: int) -> None:
-        w = build_taper_window(window_type, n_samples, max_fade_len=10)
+        cfg = TaperConfig(window_type=window_type, n_samples=n_samples, max_fade_len=10)
+        w = cfg.build_window()
         assert w.shape == (n_samples,)
-        # All values should be in [0, 1] (with float tolerance)
         assert w.min() >= -1e-6
         assert w.max() <= 1.0 + 1e-6
 
     def test_kaiser_beta_affects_shape(self, n_samples: int) -> None:
-        w1 = build_taper_window("kaiser", n_samples, kaiser_beta=2.0)
-        w2 = build_taper_window("kaiser", n_samples, kaiser_beta=14.0)
+        w1 = TaperConfig(
+            window_type="kaiser", n_samples=n_samples, kaiser_beta=2.0
+        ).build_window()
+        w2 = TaperConfig(
+            window_type="kaiser", n_samples=n_samples, kaiser_beta=14.0
+        ).build_window()
         assert not torch.allclose(w1, w2)
-
-    def test_invalid_params_raise_valueerror(self) -> None:
-        with pytest.raises(ValueError):
-            build_taper_window("hann", 0)
-        with pytest.raises(ValueError):
-            build_taper_window("hann", 100, max_percentage=0.8)
 
     def test_values_in_unit_range(self, default_window: torch.Tensor) -> None:
         assert default_window.min() >= 0.0
@@ -115,6 +115,10 @@ class TestBuildTaperWindow:
 
 
 class TestTaper:
+    def test_invalid_config_raises_value_error(self) -> None:
+        with pytest.raises(ValueError, match="Invalid tapering configuration"):
+            Taper("hann", 0)
+
     def test_forward_shape(self, n_samples: int) -> None:
         taper = Taper("hann", n_samples, max_fade_len=10)
         x = torch.ones(1, n_samples)
