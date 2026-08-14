@@ -135,11 +135,11 @@ def _(MorletFilterBank, signal):
     )
     filt_bank.summary()
 
-    coeff_type = "magnitude"
-    scalogram = filt_bank(signal.values, coeff_type=coeff_type).detach().cpu().numpy()
+    output = "magnitude"
+    scalogram = filt_bank(signal.values, output=output).detach().cpu().numpy()
 
     print(f"Scalogram array shape: {scalogram.shape}")
-    return coeff_type, filt_bank, scalogram
+    return output, filt_bank, scalogram
 
 
 @app.cell
@@ -150,7 +150,7 @@ def _(mo):
 
 
 @app.cell
-def _(coeff_type, filt_bank, plot_time_freq_plane, plt, scalogram, signal):
+def _(output, filt_bank, plot_time_freq_plane, plt, scalogram, signal):
     center_freqs = filt_bank.center_freqs.detach().cpu().numpy()
 
     _fig_sgram, ax_sgram = plt.subplots(figsize=(10, 6))
@@ -159,7 +159,7 @@ def _(coeff_type, filt_bank, plot_time_freq_plane, plt, scalogram, signal):
         freqs=center_freqs,
         times=signal.times,
         xgram=scalogram,
-        label=coeff_type,
+        label=output,
     )
 
     ax_sgram.grid(False)

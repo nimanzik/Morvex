@@ -8,7 +8,7 @@ import torch
 from pydantic import BaseModel, PositiveFloat, ValidationError
 from torch import nn
 
-from ._transform_engine import CoeffTypeEnum, CoeffTypeLiteral, _MorletTransformEngine
+from ._transform_engine import _MorletTransformEngine
 
 if TYPE_CHECKING:
     from numpy import floating as np_floating
@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from torch import Tensor
 
     from .tapering import Taper
+    from .types import TransformOutput
 
 
 class MorletWaveletConfig(BaseModel):
@@ -186,7 +187,7 @@ class MorletWavelet(nn.Module):
         self,
         data: Tensor | NDArray[np_floating],
         taper: Taper | None = None,
-        coeff_type: CoeffTypeEnum | CoeffTypeLiteral = CoeffTypeEnum.COMPLEX,
+        output: TransformOutput = "complex",
     ) -> Tensor:
         """Compute the wavelet transform of the input signal(s).
 
@@ -195,7 +196,7 @@ class MorletWavelet(nn.Module):
         coeffs : Tensor of shape (..., signal_length)
             Wavelet-transform coefficients with no singleton wavelet dimension.
         """
-        coeffs = self._engine(data, taper=taper, coeff_type=coeff_type)
+        coeffs = self._engine(data, taper=taper, output=output)
         return coeffs.squeeze(-2)
 
     def compute_freq_resp(
