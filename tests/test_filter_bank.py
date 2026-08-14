@@ -8,7 +8,9 @@ from typing import Any
 import pytest
 import torch
 from pydantic import ValidationError
+from torch import nn
 
+from morvex._transform_engine import _MorletTransformEngine
 from morvex.filter_bank import (
     MorletFilterBank,
     MorletFilterBankConfig,
@@ -137,6 +139,16 @@ class TestMorletFilterBankInit:
         default_config[field] = invalid_value
         with pytest.raises(ValueError, match="Invalid filter bank configuration"):
             MorletFilterBank(**default_config)
+
+
+class TestMorletFilterBankComposition:
+    def test_uses_a_registered_transform_engine(
+        self, filter_bank: MorletFilterBank
+    ) -> None:
+        assert isinstance(filter_bank, nn.Module)
+        assert not isinstance(filter_bank, _MorletTransformEngine)
+        assert isinstance(filter_bank._engine, _MorletTransformEngine)
+        assert dict(filter_bank.named_children()) == {"_engine": filter_bank._engine}
 
 
 class TestMorletFilterBankProperties:

@@ -1,4 +1,4 @@
-"""Group module for Morlet wavelet containers."""
+"""Vectorised transform engine for Morlet wavelets."""
 
 from __future__ import annotations
 
@@ -34,25 +34,24 @@ class CoeffTypeEnum(StrEnum):
 type CoeffTypeLiteral = Literal["power", "magnitude", "complex"]
 
 
-class _MorletWaveletGroup(nn.Module):
-    """Internal group class for Morlet wavelet containers.
+class _MorletTransformEngine(nn.Module):
+    """Internal vectorised transform engine for Morlet wavelets.
 
     Parameters
     ----------
     center_freqs : array-like of float
-        Center frequencies of the wavelets.
+        Centre frequencies of the wavelets.
     shape_ratios : float or array-like of float
         Shape ratios of the wavelets. It should be either a single value
         (common for all wavelets) or an array-like object with the same
         length as `center_freqs`.
     time_duration : float
-        Time duration of the wavelets, common for all wavelets in the group
+        Time duration shared by all wavelets in the engine.
         It should be long enough to capture the oscillations of the lowest
-        center frequency, but not too long to avoid unnecessary computations.
+        centre frequency, but not too long to avoid unnecessary computations.
     sampling_freq : float
-        Sampling frequency of the wavelets, common for all wavelets in the
-        group. It should be the same as the sampling frequency of the signals
-        to be analysed.
+        Sampling frequency shared by all wavelets in the engine. It should be
+        the same as the sampling frequency of the signals to be analysed.
     dtype : torch.dtype or None, optional
         Data type of the wavelet parameters. If `None` (default),
         :func:`torch.get_default_dtype()` is called to determine and use the
@@ -107,7 +106,7 @@ class _MorletWaveletGroup(nn.Module):
 
     @property
     def center_freqs(self) -> torch.Tensor:
-        """Center frequencies of the wavelets."""
+        """Centre frequencies of the wavelets."""
         return self._center_freqs
 
     @property
@@ -119,7 +118,7 @@ class _MorletWaveletGroup(nn.Module):
     def waveforms(self) -> torch.Tensor:
         """Return the values of the wavelets in the time domain.
 
-        Waveforms are complex-valued and centered around zero in time.
+        Waveforms are complex-valued and centred around zero in time.
 
         Returns
         -------
@@ -135,7 +134,7 @@ class _MorletWaveletGroup(nn.Module):
 
     @property
     def dtype(self) -> torch.dtype:
-        """Get the data-type of the wavelet parameters."""
+        """Get the data type of the wavelet parameters."""
         return self._center_freqs.dtype
 
     @property
@@ -150,7 +149,7 @@ class _MorletWaveletGroup(nn.Module):
 
     @property
     def times(self) -> torch.Tensor:
-        """Time points of the wavelets, centered around zero."""
+        """Time points of the wavelets, centred around zero."""
         return (
             torch.arange(self.n_samples, dtype=self.dtype, device=self.device)
             * self.delta_t
@@ -205,7 +204,7 @@ class _MorletWaveletGroup(nn.Module):
     def _compute_waveforms(self) -> torch.Tensor:
         """Compute the values of the wavelets (waveforms) in the time domain.
 
-        Waveforms are complex-valued and centered around zero time.
+        Waveforms are complex-valued and centred around zero time.
 
         Returns
         -------
@@ -283,7 +282,7 @@ class _MorletWaveletGroup(nn.Module):
 
     @torch.no_grad()
     def compute_freq_resps(
-        self, n_fft: int | None = None, scaled: bool = False, **kwargs
+        self, n_fft: int | None = None, scaled: bool = False
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Return the frequency responses of the wavelets.
 
@@ -326,11 +325,11 @@ class _MorletWaveletGroup(nn.Module):
         return rfreqs, resps
 
     def __len__(self) -> int:
-        """Return the number of wavelets in the group."""
+        """Return the number of wavelets handled by the engine."""
         return self._center_freqs.numel()
 
     def __repr__(self) -> str:
-        """Return a string representation of the wavelet group."""
+        """Return a string representation of the transform engine."""
         return (
             f"{self.__class__.__name__}("
             f"n_wave={len(self)}, "
@@ -344,19 +343,19 @@ def _coerce_validate_center_freqs(
     sampling_freq: float,
     dtype: torch.dtype | None = None,
 ) -> torch.Tensor:
-    """Coerce and validate a sequence of center frequencies and return as a tensor."""  # noqa: W505
+    """Coerce and validate a sequence of centre frequencies and return as a tensor."""  # noqa: W505
     dtype = dtype or torch.get_default_dtype()
     center_freqs = torch.as_tensor(center_freqs, dtype=dtype)
     nyquist = sampling_freq * 0.5
     if center_freqs.numel() == 0:
-        raise ValueError("Center frequencies must be non-empty.")
+        raise ValueError("Centre frequencies must be non-empty.")
     if center_freqs.ndim != 1:
-        raise ValueError("Center frequencies must be 1-dimensional.")
+        raise ValueError("Centre frequencies must be 1-dimensional.")
     if not torch.all(torch.isfinite(center_freqs)):
-        raise ValueError("Center frequencies must be finite values.")
+        raise ValueError("Centre frequencies must be finite values.")
     if torch.any(center_freqs <= 0.0) or torch.any(center_freqs >= nyquist):
         raise ValueError(
-            f"Center frequencies must be in the range (0, {nyquist}) (exclusive)."
+            f"Centre frequencies must be in the range (0, {nyquist}) (exclusive)."
         )
     return center_freqs
 
@@ -374,7 +373,7 @@ def _coerce_validate_shape_ratios(
     if shape_ratios.numel() != 1 and shape_ratios.shape != center_freqs.shape:
         raise ValueError(
             "Shape ratios must be either a scalar, or an array-like with the "
-            "same length as center frequencies."
+            "same length as centre frequencies."
         )
     return shape_ratios
 
