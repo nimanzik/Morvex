@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import Literal
 
 import torch
-import torch.nn as nn
 from pydantic import BaseModel, Field, ValidationError
+from torch import nn
 
 from .types import WindowType
 

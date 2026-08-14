@@ -5,16 +5,18 @@ from __future__ import annotations
 import math
 from enum import StrEnum
 from functools import lru_cache
-from typing import TYPE_CHECKING, Final, Literal, Sequence, final
+from typing import TYPE_CHECKING, Final, Literal, final
 
 import torch
-import torch.nn as nn
+from torch import nn
 from torch.fft import rfftfreq
 
 from .tapering import Taper
 from .xcorr import xcorr_via_fft
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from numpy import floating as np_floating
     from numpy.typing import NDArray
 
@@ -144,7 +146,7 @@ class _MorletWaveletGroup(nn.Module):
     @property
     def n_samples(self) -> int:
         """Number of samples (time points) of the wavelets."""
-        return int(round(self._time_duration * self._sampling_freq)) + 1
+        return round(self._time_duration * self._sampling_freq) + 1
 
     @property
     def times(self) -> torch.Tensor:

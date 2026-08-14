@@ -21,13 +21,13 @@ LN2 = math.log(2.0)
 
 @pytest.fixture()
 def default_config() -> dict[str, Any]:
-    return dict(
-        n_octaves=4,
-        resolution=8,
-        shape_ratio=1.0,
-        time_duration=2.0,
-        sampling_freq=100.0,
-    )
+    return {
+        "n_octaves": 4,
+        "resolution": 8,
+        "shape_ratio": 1.0,
+        "time_duration": 2.0,
+        "sampling_freq": 100.0,
+    }
 
 
 @pytest.fixture()
