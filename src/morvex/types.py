@@ -1,5 +1,5 @@
-from typing import Literal, TypeAlias
+from typing import Literal
 
-PlotBackend: TypeAlias = Literal["matplotlib", "plotly"]
+type PlotBackend = Literal["matplotlib", "plotly"]
 
-WindowType: TypeAlias = Literal["bartlett", "blackman", "hann", "hamming", "kaiser"]
+type WindowType = Literal["bartlett", "blackman", "hann", "hamming", "kaiser"]

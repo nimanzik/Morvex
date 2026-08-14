@@ -1,7 +1,4 @@
-lint.select = ["B", "E", "F", "I", "Q", "D", "W505", "TCH", "RUF022"]
-lint.ignore = ["D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107"]
 line-length = 88
-
 include = [
     "examples/**/*.py",
     "src/**/*.py",
@@ -9,11 +6,19 @@ include = [
     "pyproject.toml",
     "ruff.toml",
 ]
-exclude = ["examples/marimo_notebooks/*.py"]
+exclude = []
 
 [format]
 quote-style = "double"
 skip-magic-trailing-comma = true
+
+[lint]
+extend-select = ["B", "D", "E", "F", "I", "Q", "RUF022", "S", "TC", "W505"]
+ignore = ["D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107"]
+
+[lint.per-file-ignores]
+# Ignore S101 (use of assert) in test files
+"tests/**/*.py" = ["S101"]
 
 [lint.pycodestyle]
 max-doc-length = 79
