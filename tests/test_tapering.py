@@ -90,7 +90,7 @@ class TestBuildTaperWindow:
         w = build_taper_window("hann", 100, max_percentage=0.1, max_fade_len=5)
         assert torch.allclose(w[5:95], torch.ones(90))
 
-    @pytest.mark.parametrize("window_type", get_args(WindowType))
+    @pytest.mark.parametrize("window_type", get_args(WindowType.__value__))
     def test_all_window_types(self, window_type: WindowType, n_samples: int) -> None:
         w = build_taper_window(window_type, n_samples, max_fade_len=10)
         assert w.shape == (n_samples,)

@@ -1,7 +1,8 @@
 name: Dependabot Manual Sweep
 
 on:
-  # Trigger: it won't run unless we click the button
+  # Trigger: it won't run unless we click the button. This is an explicit
+  # override that enables auto-merge for all updates, including major ones.
   workflow_dispatch:
 
 permissions:
@@ -11,10 +12,8 @@ permissions:
 jobs:
   sweep:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
       - name: Enable Auto-Merge for all open Dependabot PRs
         run: |
           echo "Fetching open Dependabot PRs..."
