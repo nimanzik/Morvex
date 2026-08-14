@@ -5,7 +5,7 @@ possibly-unresolved-reference = "warn"
 
 [src]
 # Lock what gets checked so "ty check" and "ty check ." act the same
-include = ["src/", "tests/"]
+include = ["examples/", "src/", "tests/"]
 exclude = []
 
 [environment]
