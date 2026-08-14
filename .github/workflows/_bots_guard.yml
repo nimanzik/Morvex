@@ -10,14 +10,16 @@ on:
 jobs:
   guard:
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     steps:
       - id: check
         shell: bash
+        env:
+          ACTOR: ${{ github.actor }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
           BOT_USERS=("dependabot[bot]" "renovate[bot]" "pre-commit-ci[bot]" "mend-bolt-for-github[bot]" "github-actions[bot]")
-          ACTOR="${{ github.actor }}"
-          EVENT_NAME="${{ github.event_name }}"
           SKIP_CI="false"
           for BOT_USER in "${BOT_USERS[@]}"; do
             if [[ "$ACTOR" == "$BOT_USER" && "$EVENT_NAME" == "push" ]]; then

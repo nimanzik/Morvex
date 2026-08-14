@@ -3,7 +3,6 @@ name: Dependabot PR auto-merge
 on:
   pull_request:
     types: [opened, reopened, synchronize]
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -11,19 +10,24 @@ permissions:
 
 jobs:
   dependabot_automerge:
-    if: github.actor == 'dependabot[bot]'
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.repository == github.event.pull_request.head.repo.full_name
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Fetch dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Auto-merge dependabot PR
         # Only merge patch and minor updates
         # Major updates require manual review
-        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        if: >-
+          steps.metadata.outputs.update-type != 'version-update:semver-major' &&
+          !contains(github.event.pull_request.title, 'REDUNDANT')
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
