@@ -8,7 +8,7 @@ import torch
 from pydantic import BaseModel, PositiveFloat, ValidationError
 from torch import nn
 
-from ._wavelet_group import CoeffTypeEnum, CoeffTypeLiteral, _MorletWaveletGroup
+from ._transform_engine import CoeffTypeEnum, CoeffTypeLiteral, _MorletTransformEngine
 
 if TYPE_CHECKING:
     from numpy import floating as np_floating
@@ -33,7 +33,7 @@ class MorletWavelet(nn.Module):
     Parameters
     ----------
     center_freq : float
-        Center frequency of the wavelet.
+        Centre frequency of the wavelet.
     shape_ratio : float
         Shape ratio of the wavelet.
     time_duration : float
@@ -72,7 +72,7 @@ class MorletWavelet(nn.Module):
         except ValidationError as e:
             raise ValueError(f"Invalid wavelet configuration: {e}") from e
 
-        self._group = _MorletWaveletGroup(
+        self._engine = _MorletTransformEngine(
             center_freqs=[cfg.center_freq],
             shape_ratios=[cfg.shape_ratio],
             time_duration=cfg.time_duration,
@@ -81,15 +81,15 @@ class MorletWavelet(nn.Module):
 
     @property
     def center_freq(self) -> float:
-        """Center frequency of the wavelet.
+        """Centre frequency of the wavelet.
 
         Returns
         -------
         out : float
-            Center frequency of the wavelet. It is in the same unit as the
+            Centre frequency of the wavelet. It is in the same unit as the
             `sampling_freq` parameter.
         """
-        return self._group.center_freqs.item()
+        return self._engine.center_freqs.item()
 
     @property
     def shape_ratio(self) -> float:
@@ -100,42 +100,42 @@ class MorletWavelet(nn.Module):
         out : float
             Shape ratio of the wavelet.
         """
-        return self._group.shape_ratios.item()
+        return self._engine.shape_ratios.item()
 
     @property
     def time_duration(self) -> float:
         """Time duration of the wavelet."""
-        return self._group.time_duration
+        return self._engine.time_duration
 
     @property
     def sampling_freq(self) -> float:
         """Sampling frequency of the wavelet."""
-        return self._group.sampling_freq
+        return self._engine.sampling_freq
 
     @property
     def device(self) -> torch.device:
         """Device on which the wavelet parameters are stored."""
-        return self._group.device
+        return self._engine.device
 
     @property
     def dtype(self) -> torch.dtype:
         """Data type of the wavelet parameters."""
-        return self._group.dtype
+        return self._engine.dtype
 
     @property
     def delta_t(self) -> float:
         """Sampling interval of the wavelet."""
-        return self._group.delta_t
+        return self._engine.delta_t
 
     @property
     def n_samples(self) -> int:
         """Number of samples in the wavelet."""
-        return self._group.n_samples
+        return self._engine.n_samples
 
     @property
     def times(self) -> Tensor:
-        """Time points of the wavelet, centered around zero."""
-        return self._group.times
+        """Time points of the wavelet, centred around zero."""
+        return self._engine.times
 
     @property
     def time_width(self) -> float:
@@ -147,7 +147,7 @@ class MorletWavelet(nn.Module):
             Time width of the wavelet. It is in the same unit as the
             `time_duration` parameter.
         """
-        return self._group.time_widths.item()
+        return self._engine.time_widths.item()
 
     @property
     def freq_width(self) -> float:
@@ -159,17 +159,17 @@ class MorletWavelet(nn.Module):
             Frequency width of the wavelet. It is in the same unit as the
             `center_freq` parameter.
         """
-        return self._group.freq_widths.item()
+        return self._engine.freq_widths.item()
 
     @property
     def omega0(self) -> float:
         """Angular frequency of the wavelet."""
-        return self._group.omega0s.item()
+        return self._engine.omega0s.item()
 
     @property
     def scale(self) -> float:
         """Scale of the wavelet."""
-        return self._group.scales.item()
+        return self._engine.scales.item()
 
     @property
     def waveform(self) -> Tensor:
@@ -180,7 +180,7 @@ class MorletWavelet(nn.Module):
         out : Tensor of shape (n_samples,)
             Waveform of the wavelet.
         """
-        return self._group.waveforms[0]
+        return self._engine.waveforms[0]
 
     def forward(
         self,
@@ -195,7 +195,7 @@ class MorletWavelet(nn.Module):
         coeffs : Tensor of shape (..., signal_length)
             Wavelet-transform coefficients with no singleton wavelet dimension.
         """
-        coeffs = self._group(data, taper=taper, coeff_type=coeff_type)
+        coeffs = self._engine(data, taper=taper, coeff_type=coeff_type)
         return coeffs.squeeze(-2)
 
     def compute_freq_resp(
@@ -223,7 +223,7 @@ class MorletWavelet(nn.Module):
         resp : Tensor of shape (n_freqs,)
             Frequency response of the wavelet.
         """
-        freqs, resps = self._group.compute_freq_resps(n_fft=n_fft, scaled=scaled)
+        freqs, resps = self._engine.compute_freq_resps(n_fft=n_fft, scaled=scaled)
         return freqs, resps[0]
 
     def __repr__(self) -> str:
@@ -245,7 +245,7 @@ class MorletWavelet(nn.Module):
         table.title = f"{self.__class__.__name__} Summary"
         table.add_column("Parameter")
         table.add_column("Value")
-        table.add_row("Center freq.", f"{self.center_freq}")
+        table.add_row("Centre freq.", f"{self.center_freq}")
         table.add_row("Shape ratio (κ)", f"{self.shape_ratio}")
         table.add_row("Time duration (τ)", f"{self.time_duration}")
         table.add_row("Sampling freq.", f"{self.sampling_freq}")

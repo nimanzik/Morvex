@@ -6,7 +6,7 @@ import pytest
 import torch
 from torch import nn
 
-from morvex._wavelet_group import _MorletWaveletGroup
+from morvex._transform_engine import _MorletTransformEngine
 from morvex.wavelet import MorletWavelet
 
 
@@ -18,19 +18,19 @@ def wavelet() -> MorletWavelet:
 
 
 class TestMorletWaveletComposition:
-    def test_uses_composition_instead_of_group_inheritance(
+    def test_uses_composition_instead_of_engine_inheritance(
         self, wavelet: MorletWavelet
     ) -> None:
         assert isinstance(wavelet, nn.Module)
-        assert not isinstance(wavelet, _MorletWaveletGroup)
-        assert isinstance(wavelet._group, _MorletWaveletGroup)
+        assert not isinstance(wavelet, _MorletTransformEngine)
+        assert isinstance(wavelet._engine, _MorletTransformEngine)
 
-    def test_wrapped_group_is_a_registered_child_module(
+    def test_wrapped_engine_is_a_registered_child_module(
         self, wavelet: MorletWavelet
     ) -> None:
         children = dict(wavelet.named_children())
 
-        assert children == {"_group": wavelet._group}
+        assert children == {"_engine": wavelet._engine}
         assert wavelet.to(device="cpu") is wavelet
         assert wavelet.device.type == "cpu"
 
@@ -55,11 +55,11 @@ class TestMorletWaveletForward:
 
         assert coeffs.shape == input_shape
 
-    def test_matches_wrapped_group(self, wavelet: MorletWavelet) -> None:
+    def test_matches_wrapped_engine(self, wavelet: MorletWavelet) -> None:
         signal = torch.randn(200)
 
         actual = wavelet(signal)
-        expected = wavelet._group(signal)[0]
+        expected = wavelet._engine(signal)[0]
 
         assert torch.allclose(actual, expected)
 

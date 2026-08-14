@@ -1,24 +1,24 @@
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import Any, Final
 
 import numpy as np
 import pytest
 import torch
 
-from morvex._wavelet_group import (
+from morvex._transform_engine import (
     CoeffTypeEnum,
     _coerce_validate_center_freqs,
     _coerce_validate_shape_ratios,
     _get_default_taper,
-    _MorletWaveletGroup,
+    _MorletTransformEngine,
     _preprocess_input,
 )
 from morvex.tapering import Taper
 
-PI = math.pi
-LN2 = math.log(2.0)
+LN2: Final = math.log(2.0)
+PI: Final = math.pi
 
 
 class TestCoerceValidateCenterFreqs:
@@ -163,9 +163,9 @@ class TestPreprocessInput:
         assert output.dtype == torch.float64
 
 
-class TestMorletWaveletGroup:
+class TestMorletTransformEngine:
     def test_properties_and_waveforms_have_expected_shapes(self) -> None:
-        wavelets = _MorletWaveletGroup(
+        wavelets = _MorletTransformEngine(
             center_freqs=[10.0, 20.0],
             shape_ratios=7.0,
             time_duration=1.0,
@@ -184,7 +184,7 @@ class TestMorletWaveletGroup:
         )
 
     def test_forward_returns_consistent_coeff_types(self) -> None:
-        wavelets = _MorletWaveletGroup(
+        wavelets = _MorletTransformEngine(
             center_freqs=[8.0, 16.0],
             shape_ratios=7.0,
             time_duration=0.5,
@@ -208,7 +208,7 @@ class TestMorletWaveletGroup:
         assert torch.all(coeffs_power >= 0.0)
 
     def test_compute_freq_resps_scales_by_expected_amplitude(self) -> None:
-        wavelets = _MorletWaveletGroup(
+        wavelets = _MorletTransformEngine(
             center_freqs=[6.0, 12.0],
             shape_ratios=7.0,
             time_duration=1.0,
@@ -229,7 +229,7 @@ class TestMorletWaveletGroup:
             assert ratio.item() == pytest.approx(expected_scale[i].item(), rel=1e-6)
 
     def test_forward_with_invalid_coeff_type_raises(self) -> None:
-        wavelets = _MorletWaveletGroup(
+        wavelets = _MorletTransformEngine(
             center_freqs=[10.0],
             shape_ratios=7.0,
             time_duration=0.5,
@@ -241,7 +241,7 @@ class TestMorletWaveletGroup:
             wavelets(data, coeff_type="invalid_type")
 
     def test_forward_with_explicit_taper(self) -> None:
-        wavelets = _MorletWaveletGroup(
+        wavelets = _MorletTransformEngine(
             center_freqs=[10.0, 20.0],
             shape_ratios=7.0,
             time_duration=0.5,
@@ -257,7 +257,7 @@ class TestMorletWaveletGroup:
 
     def test_forward_batched_2d_input(self) -> None:
         """Test forward with (C, L) shaped input."""
-        wavelets = _MorletWaveletGroup(
+        wavelets = _MorletTransformEngine(
             center_freqs=[8.0, 16.0],
             shape_ratios=7.0,
             time_duration=0.5,
@@ -273,7 +273,7 @@ class TestMorletWaveletGroup:
 
     def test_forward_batched_3d_input(self) -> None:
         """Test forward with (B, C, L) shaped input."""
-        wavelets = _MorletWaveletGroup(
+        wavelets = _MorletTransformEngine(
             center_freqs=[8.0, 16.0],
             shape_ratios=7.0,
             time_duration=0.5,
@@ -291,7 +291,7 @@ class TestMorletWaveletGroup:
         assert torch.allclose(coeffs_mag.square(), coeffs_power, atol=1e-6, rtol=1e-5)
 
     def test_forward_with_numpy_input(self) -> None:
-        wavelets = _MorletWaveletGroup(
+        wavelets = _MorletTransformEngine(
             center_freqs=[10.0],
             shape_ratios=7.0,
             time_duration=0.5,
@@ -306,7 +306,7 @@ class TestMorletWaveletGroup:
 
     def test_per_wavelet_shape_ratios(self) -> None:
         """Happy path: per-wavelet shape_ratios array."""
-        wavelets = _MorletWaveletGroup(
+        wavelets = _MorletTransformEngine(
             center_freqs=[10.0, 20.0],
             shape_ratios=[5.0, 9.0],
             time_duration=1.0,
@@ -319,7 +319,7 @@ class TestMorletWaveletGroup:
         assert wavelets.waveforms.shape == (2, 101)
 
     def test_delta_t(self) -> None:
-        wavelets = _MorletWaveletGroup(
+        wavelets = _MorletTransformEngine(
             center_freqs=[10.0],
             shape_ratios=7.0,
             time_duration=1.0,
@@ -328,7 +328,7 @@ class TestMorletWaveletGroup:
         assert wavelets.delta_t == pytest.approx(1.0 / 200.0)
 
     def test_device_property(self) -> None:
-        wavelets = _MorletWaveletGroup(
+        wavelets = _MorletTransformEngine(
             center_freqs=[10.0],
             shape_ratios=7.0,
             time_duration=1.0,
@@ -338,7 +338,7 @@ class TestMorletWaveletGroup:
 
     def test_dtype_property(self) -> None:
         for dt in (torch.float32, torch.float64):
-            wavelets = _MorletWaveletGroup(
+            wavelets = _MorletTransformEngine(
                 center_freqs=[10.0],
                 shape_ratios=7.0,
                 time_duration=1.0,
@@ -348,7 +348,7 @@ class TestMorletWaveletGroup:
             assert wavelets.dtype == dt
 
     def test_freq_widths(self) -> None:
-        wavelets = _MorletWaveletGroup(
+        wavelets = _MorletTransformEngine(
             center_freqs=[10.0, 20.0],
             shape_ratios=7.0,
             time_duration=1.0,
@@ -361,7 +361,7 @@ class TestMorletWaveletGroup:
         assert torch.allclose(wavelets.freq_widths, expected)
 
     def test_omega0s(self) -> None:
-        wavelets = _MorletWaveletGroup(
+        wavelets = _MorletTransformEngine(
             center_freqs=[10.0, 20.0],
             shape_ratios=7.0,
             time_duration=1.0,
@@ -373,7 +373,7 @@ class TestMorletWaveletGroup:
         assert torch.allclose(wavelets.omega0s, expected)
 
     def test_scales(self) -> None:
-        wavelets = _MorletWaveletGroup(
+        wavelets = _MorletTransformEngine(
             center_freqs=[10.0, 20.0],
             shape_ratios=7.0,
             time_duration=1.0,
@@ -390,7 +390,7 @@ class TestMorletWaveletGroup:
     def test_len(self) -> None:
         for n in (1, 3, 5):
             freqs = [5.0 + i * 3.0 for i in range(n)]
-            wavelets = _MorletWaveletGroup(
+            wavelets = _MorletTransformEngine(
                 center_freqs=freqs,
                 shape_ratios=7.0,
                 time_duration=1.0,
@@ -400,7 +400,7 @@ class TestMorletWaveletGroup:
 
     def test_compute_freq_resps_default_n_fft(self) -> None:
         """n_fft=None should use next power of 2 >= n_samples."""
-        wavelets = _MorletWaveletGroup(
+        wavelets = _MorletTransformEngine(
             center_freqs=[10.0],
             shape_ratios=7.0,
             time_duration=1.0,
@@ -416,7 +416,7 @@ class TestMorletWaveletGroup:
     def test_compute_freq_resps_peaks_near_center_freq(self) -> None:
         """Frequency response should peak near each wavelet's center freq."""
         center_freqs = [8.0, 20.0, 35.0]
-        wavelets = _MorletWaveletGroup(
+        wavelets = _MorletTransformEngine(
             center_freqs=center_freqs,
             shape_ratios=7.0,
             time_duration=2.0,
