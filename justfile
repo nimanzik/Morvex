@@ -31,6 +31,9 @@ test python_version=default_python_version:
     @uv run {{ uv_test_options }} --python "{{ python_version }}" \
         pytest -rs {{ pytest_options }} tests/
 
+test-only path_to_test_file:
+    @uv run {{ uv_test_options }} pytest -rs {{ pytest_options }} {{ path_to_test_file }}
+
 # Run the checks used by CI on the default Python version.
 ci: lint-check format-check typecheck test build-check
 
