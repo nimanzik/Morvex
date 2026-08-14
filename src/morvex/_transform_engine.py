@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import math
-from enum import StrEnum
 from functools import lru_cache
-from typing import TYPE_CHECKING, Final, Literal, final
+from typing import TYPE_CHECKING, Final, final
 
 import torch
 from torch import nn
@@ -20,18 +19,11 @@ if TYPE_CHECKING:
     from numpy import floating as np_floating
     from numpy.typing import NDArray
 
+    from .types import TransformOutput
+
 
 LN2: Final = math.log(2.0)
 PI: Final = math.pi
-
-
-class CoeffTypeEnum(StrEnum):
-    POWER = "power"
-    MAGNITUDE = "magnitude"
-    COMPLEX = "complex"
-
-
-type CoeffTypeLiteral = Literal["power", "magnitude", "complex"]
 
 
 class _MorletTransformEngine(nn.Module):
@@ -225,7 +217,7 @@ class _MorletTransformEngine(nn.Module):
         self,
         data: torch.Tensor | NDArray[np_floating],
         taper: Taper | None = None,
-        coeff_type: CoeffTypeEnum | CoeffTypeLiteral = CoeffTypeEnum.COMPLEX,
+        output: TransformOutput = "complex",
     ) -> torch.Tensor:
         """Compute the wavelet transform of the input signal(s).
 
@@ -237,8 +229,8 @@ class _MorletTransformEngine(nn.Module):
             Tapering module to apply to the input signal(s) before computing
             the wavelet transform. If None, a default Hann taper with a
             maximum fade length of 5% of the signal length will be applied.
-        coeff_type : {'complex', 'magnitude', 'power'}, default='complex'
-            The type of the wavelet-transform coefficients to return:
+        output : {'complex', 'magnitude', 'power'}, default='complex'
+            The representation of the wavelet-transform coefficients to return:
 
             - `'complex'`: complex-valued coefficients (default),
             - `'magnitude'`: absolute magnitude of the coefficients,
@@ -260,7 +252,8 @@ class _MorletTransformEngine(nn.Module):
             number of wavelets, `C` is the number of channels, and `B` is the
             batch size.
         """
-        coeff_type = CoeffTypeEnum(coeff_type)
+        if output not in ("complex", "magnitude", "power"):
+            raise ValueError(f"Invalid output: {output!r}")
 
         if taper is None:
             taper = _get_default_taper(data.shape[-1], self.dtype, self.device)
@@ -273,12 +266,11 @@ class _MorletTransformEngine(nn.Module):
         scales = self.scales.detach()
         coeffs = xcorr_via_fft(x_in, waveforms) / torch.sqrt(scales[:, None])
 
-        if coeff_type == CoeffTypeEnum.POWER:
+        if output == "power":
             return (coeffs * coeffs.conj()).real
-        elif coeff_type == CoeffTypeEnum.MAGNITUDE:
+        if output == "magnitude":
             return coeffs.abs()
-        else:  # "complex"
-            return coeffs
+        return coeffs
 
     @torch.no_grad()
     def compute_freq_resps(

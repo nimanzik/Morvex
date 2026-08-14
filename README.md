@@ -103,7 +103,7 @@ fbank = MorletFilterBank(
 
 # Compute the wavelet transform (scalogram) of an 8-second signal
 signal = torch.randn(8000)
-scalogram = fbank(signal, coeff_type="power")
+scalogram = fbank(signal, output="power")
 
 scalogram.shape
 # torch.Size([n_wavelets, 8000])
@@ -117,7 +117,7 @@ seconds each):
 
 ```python
 signals = torch.randn(16, 3, 8000)
-scalogram = fbank(signals, coeff_type="magnitude")
+scalogram = fbank(signals, output="magnitude")
 
 scalogram.shape
 # torch.Size([16, 3, n_wavelets, 8000])
@@ -133,7 +133,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 fbank = fbank.to(device)
 signal = signal.to(device)
-scalogram = fbank(signal, coeff_type="power")  # Computed on GPU if available
+scalogram = fbank(signal, output="power")  # Computed on GPU if available
 ```
 
 ### Visualisation

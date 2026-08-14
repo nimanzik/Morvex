@@ -8,7 +8,6 @@ import pytest
 import torch
 
 from morvex._transform_engine import (
-    CoeffTypeEnum,
     _coerce_validate_center_freqs,
     _coerce_validate_shape_ratios,
     _get_default_taper,
@@ -183,7 +182,7 @@ class TestMorletTransformEngine:
             wavelets.time_widths, torch.tensor([0.7, 0.35], dtype=torch.float32)
         )
 
-    def test_forward_returns_consistent_coeff_types(self) -> None:
+    def test_forward_returns_consistent_outputs(self) -> None:
         wavelets = _MorletTransformEngine(
             center_freqs=[8.0, 16.0],
             shape_ratios=7.0,
@@ -192,9 +191,9 @@ class TestMorletTransformEngine:
         )
         data = torch.randn(256)
 
-        coeffs_complex = wavelets(data, coeff_type=CoeffTypeEnum.COMPLEX)
-        coeffs_magnitude = wavelets(data, coeff_type="magnitude")
-        coeffs_power = wavelets(data, coeff_type="power")
+        coeffs_complex = wavelets(data, output="complex")
+        coeffs_magnitude = wavelets(data, output="magnitude")
+        coeffs_power = wavelets(data, output="power")
 
         assert coeffs_complex.shape == (2, 256)
         assert coeffs_magnitude.shape == (2, 256)
@@ -228,7 +227,7 @@ class TestMorletTransformEngine:
             ratio = resps_scaled[i, peak_idx] / resps_unscaled[i, peak_idx]
             assert ratio.item() == pytest.approx(expected_scale[i].item(), rel=1e-6)
 
-    def test_forward_with_invalid_coeff_type_raises(self) -> None:
+    def test_forward_with_invalid_output_raises(self) -> None:
         wavelets = _MorletTransformEngine(
             center_freqs=[10.0],
             shape_ratios=7.0,
@@ -238,7 +237,7 @@ class TestMorletTransformEngine:
         data = torch.randn(64)
 
         with pytest.raises(ValueError):
-            wavelets(data, coeff_type="invalid_type")
+            wavelets(data, output="invalid_type")
 
     def test_forward_with_explicit_taper(self) -> None:
         wavelets = _MorletTransformEngine(
@@ -250,7 +249,7 @@ class TestMorletTransformEngine:
         data = torch.randn(128)
         taper = Taper("hann", n_samples=128, max_percentage=0.10, side="both")
 
-        coeffs = wavelets(data, taper=taper, coeff_type="power")
+        coeffs = wavelets(data, taper=taper, output="power")
 
         assert coeffs.shape == (2, 128)
         assert torch.all(coeffs >= 0.0)
@@ -266,7 +265,7 @@ class TestMorletTransformEngine:
         n_channels, signal_len = 3, 256
         data = torch.randn(n_channels, signal_len)
 
-        coeffs = wavelets(data, coeff_type=CoeffTypeEnum.COMPLEX)
+        coeffs = wavelets(data, output="complex")
 
         assert coeffs.shape == (n_channels, 2, signal_len)
         assert torch.is_complex(coeffs)
@@ -282,8 +281,8 @@ class TestMorletTransformEngine:
         batch, n_channels, signal_len = 4, 3, 256
         data = torch.randn(batch, n_channels, signal_len)
 
-        coeffs_power = wavelets(data, coeff_type="power")
-        coeffs_mag = wavelets(data, coeff_type="magnitude")
+        coeffs_power = wavelets(data, output="power")
+        coeffs_mag = wavelets(data, output="magnitude")
 
         assert coeffs_power.shape == (batch, n_channels, 2, signal_len)
         assert coeffs_mag.shape == (batch, n_channels, 2, signal_len)
@@ -299,7 +298,7 @@ class TestMorletTransformEngine:
         )
         data_np = np.random.randn(128).astype(np.float64)
 
-        coeffs = wavelets(data_np, coeff_type="power")
+        coeffs = wavelets(data_np, output="power")
 
         assert coeffs.shape == (1, 128)
         assert torch.all(coeffs >= 0.0)

@@ -191,17 +191,17 @@ class TestMorletFilterBankForward:
 
     def test_power_coeffs_are_non_negative(self, filter_bank: MorletFilterBank) -> None:
         signal = torch.randn(500)
-        coeffs = filter_bank(signal, coeff_type="power")
+        coeffs = filter_bank(signal, output="power")
         assert torch.all(coeffs >= 0)
 
     def test_complex_coeffs_are_complex(self, filter_bank: MorletFilterBank) -> None:
         signal = torch.randn(500)
-        coeffs = filter_bank(signal, coeff_type="complex")
+        coeffs = filter_bank(signal, output="complex")
         assert coeffs.is_complex()
 
     def test_magnitude_coeffs_are_non_negative(
         self, filter_bank: MorletFilterBank
     ) -> None:
         signal = torch.randn(500)
-        coeffs = filter_bank(signal, coeff_type="magnitude")
+        coeffs = filter_bank(signal, output="magnitude")
         assert torch.all(coeffs >= 0)

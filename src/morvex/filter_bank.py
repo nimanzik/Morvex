@@ -9,7 +9,7 @@ import torch
 from pydantic import BaseModel, PositiveFloat, PositiveInt, ValidationError
 from torch import nn
 
-from ._transform_engine import CoeffTypeEnum, CoeffTypeLiteral, _MorletTransformEngine
+from ._transform_engine import _MorletTransformEngine
 
 if TYPE_CHECKING:
     from numpy import floating as np_floating
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from torch import Tensor
 
     from .tapering import Taper
+    from .types import TransformOutput
 
 LN2: Final = math.log(2.0)
 PI: Final = math.pi
@@ -187,10 +188,10 @@ class MorletFilterBank(nn.Module):
         self,
         data: Tensor | NDArray[np_floating],
         taper: Taper | None = None,
-        coeff_type: CoeffTypeEnum | CoeffTypeLiteral = CoeffTypeEnum.COMPLEX,
+        output: TransformOutput = "complex",
     ) -> Tensor:
         """Compute the filter-bank transform of the input signal(s)."""
-        return self._engine(data, taper=taper, coeff_type=coeff_type)
+        return self._engine(data, taper=taper, output=output)
 
     def compute_freq_resps(
         self, n_fft: int | None = None, scaled: bool = False
