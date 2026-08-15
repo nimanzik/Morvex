@@ -6,7 +6,7 @@ include = [
     "pyproject.toml",
     "ruff.toml",
 ]
-exclude = []
+exclude = ["examples/marimo_notebooks/basic_example.py"]
 
 [format]
 quote-style = "double"
