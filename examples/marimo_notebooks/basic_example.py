@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.0"
+__generated_with = "0.23.16"
 app = marimo.App(width="medium")
 
 
@@ -47,6 +47,7 @@ def _(mo):
     provide instance properties for signal time-duration, `duration`, and
     length, `num_samples`.
     """)
+    return
 
 
 @app.cell
@@ -81,6 +82,7 @@ def _(mo):
     Now, let's load our example signal and display it. We can also print out
     the signal information to confirm that it has been loaded correctly.
     """)
+    return
 
 
 @app.cell
@@ -98,17 +100,18 @@ def _(Path, Signal, np):
 
 @app.cell
 def _(plt, signal):
-    _fig_sig, ax_sig = plt.subplots(figsize=(14, 6))
-    ax_sig.plot(signal.times, signal.values, linewidth=0.7)
+    _fig_sig, ax_sig = plt.subplots(figsize=(14, 4))
+    ax_sig.plot(signal.times, signal.values, linewidth=0.75, color="#3465a4")
     ax_sig.set(
         xlabel="Time [s]",
         ylabel="Acoustic Amplitude",
-        title="Fin-Whale song recording | Bandpass filtered 12–30 Hz",
+        title="Fin-Whale song recording | Bandpass filtered 12-30 Hz",
     )
     ax_sig.margins(x=0.01)
 
-    # mo.mpl.interactive(fig_sig)
+    # mo.mpl.interactive(_fig_sig)
     plt.gca()
+    return
 
 
 @app.cell
@@ -122,24 +125,24 @@ def _(mo):
     creation, we can call its `summary()` method to print out the filter bank
     information.
     """)
+    return
 
 
 @app.cell
 def _(MorletFilterBank, signal):
     filt_bank = MorletFilterBank(
-        n_octaves=2,
-        resolution=8,
-        shape_ratio=5.0,
-        time_duration=1.5,
+        n_octaves=3,
+        resolution=12,
+        shape_ratio=4.0,
+        time_duration=5.0,
         sampling_freq=signal.fs,
     )
     filt_bank.summary()
 
-    output = "magnitude"
-    scalogram = filt_bank(signal.values, output=output).detach().cpu().numpy()
+    scalogram = filt_bank(signal.values, output="power").detach().cpu().numpy()
 
     print(f"Scalogram array shape: {scalogram.shape}")
-    return output, filt_bank, scalogram
+    return filt_bank, scalogram
 
 
 @app.cell
@@ -147,25 +150,29 @@ def _(mo):
     mo.md(r"""
     ### Display the scalogram
     """)
+    return
 
 
 @app.cell
-def _(output, filt_bank, plot_time_freq_plane, plt, scalogram, signal):
+def _(filt_bank, plot_time_freq_plane, plt, scalogram, signal):
     center_freqs = filt_bank.center_freqs.detach().cpu().numpy()
 
-    _fig_sgram, ax_sgram = plt.subplots(figsize=(10, 6))
+    _fig_sgram, (ax_sig2, ax_sgram) = plt.subplots(2, 1, figsize=(14, 7), height_ratios=[1, 2])
+    ax_sig2.plot(signal.times, signal.values, linewidth=0.75, color="#3465a4")
     plot_time_freq_plane(
         ax=ax_sgram,
         freqs=center_freqs,
         times=signal.times,
         xgram=scalogram,
-        label=output,
+        log_scale=True,
+        label="Power",
     )
 
     ax_sgram.grid(False)
 
     # mo.mpl.interactive(fig_sgram)
     plt.gca()
+    return
 
 
 @app.cell
@@ -184,11 +191,12 @@ def _(mo):
     frequency,  while the minimum frequency is determined by the number of
     octaves in the filterbank.
     """)
+    return
 
 
 @app.cell
 def _(filt_bank, plot_freq_resps, plt, signal):
-    _fig_resps, ax_resps = plt.subplots(figsize=(10, 6))
+    _fig_resps, ax_resps = plt.subplots(1, 1, figsize=(10, 6))
     plot_freq_resps(filt_bank, ax_resps, n_fft=512, color="#3465a4")
 
     # --- Mark lower frequency passband and the Nyquist ---
@@ -211,6 +219,7 @@ def _(filt_bank, plot_freq_resps, plt, signal):
 
     # mo.mpl.interactive(fig_resps)
     plt.gca()
+    return
 
 
 if __name__ == "__main__":

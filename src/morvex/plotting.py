@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, TypeGuard
 
 import numpy as np
 from cmcrameri import cm
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pydantic.dataclasses import dataclass
 
 from .types import PlotBackend
@@ -221,6 +222,9 @@ def plot_time_freq_plane(
     v_min, v_max = _get_vrange(xgram)
     cmap = cmap or cm.cmaps["lipari"]
 
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="3%", pad=0.05)
+
     if xgram.shape[-1] > 1000:
         # Use `imshow` for large data
         im = ax.imshow(
@@ -232,7 +236,7 @@ def plot_time_freq_plane(
             vmin=v_min,
             vmax=v_max,
         )
-        cbar = ax.figure.colorbar(mappable=im, ax=ax)
+        cbar = ax.figure.colorbar(mappable=im, ax=ax, cax=cax)
         y_ticks = np.linspace(0, len(freqs) - 1, num=8, dtype=int)
         y_tick_labels = [f"{freqs[i]:.0f}" for i in y_ticks]
         ax.set_yticks(ticks=y_ticks, labels=y_tick_labels)
@@ -241,7 +245,7 @@ def plot_time_freq_plane(
         pc = ax.pcolormesh(
             times, freqs, xgram, cmap=cmap, shading="gouraud", vmin=v_min, vmax=v_max
         )
-        cbar = ax.figure.colorbar(mappable=pc, ax=ax)
+        cbar = ax.figure.colorbar(mappable=pc, ax=ax, cax=cax)
     if auto_xlabel:
         ax.set_xlabel("Time")
     if auto_ylabel:
